@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Learning</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container">
+        <section class="card card-compact">
+            <h2>Learning</h2>
+            <p class="tagline">Keep your study streak alive, one focused week at a time.</p>
+        </section>
+
+        <section class="grid">
+            <div class="empty-state" th:if="${#lists.isEmpty(roadmaps)}">
+                No roadmaps started yet. Use the Home Page to begin.
+            </div>
+            <div class="dashboard-card" th:each="roadmap : ${roadmaps}">
+                <h3 th:text="${roadmap.fieldName}"></h3>
+                <p>Level: <span th:text="${roadmap.level}"></span></p>
+                <p>Duration: <span th:text="${roadmap.durationMonths}"></span> months</p>
+                <div class="progress">
+                    <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
+                </div>
+                <p class="progress-text"><span th:text="${roadmap.progressPercent}"></span>% complete</p>
+                <div class="dashboard-actions">
+                    <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id}}">Open Roadmap</a>
+                    <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/delete'}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <button class="danger-btn" type="submit">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
