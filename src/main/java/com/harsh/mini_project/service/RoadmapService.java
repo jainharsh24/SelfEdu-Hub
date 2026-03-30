@@ -75,7 +75,7 @@ public class RoadmapService {
     }
 
     @Transactional
-    public void toggleTopic(Long roadmapId, Long topicId, AppUser user) {
+    public Integer toggleTopic(Long roadmapId, Long topicId, AppUser user) {
         Roadmap roadmap = roadmapRepository.findByIdAndUser(roadmapId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Roadmap not found"));
         Topic topic = topicRepository.findById(topicId)
@@ -83,10 +83,21 @@ public class RoadmapService {
         if (!topic.getRoadmap().getId().equals(roadmap.getId())) {
             throw new IllegalStateException("Topic does not belong to roadmap");
         }
-        topic.setCompleted(!topic.isCompleted());
+        boolean wasCompleted = topic.isCompleted();
+        topic.setCompleted(!wasCompleted);
         topicRepository.save(topic);
         updateProgress(roadmap);
         roadmapRepository.save(roadmap);
+
+        if (wasCompleted || !topic.isCompleted()) {
+            return null;
+        }
+
+        int weekNumber = topic.getWeekNumber();
+        boolean allCompleted = roadmap.getTopics().stream()
+                .filter(item -> item.getWeekNumber() == weekNumber)
+                .allMatch(Topic::isCompleted);
+        return allCompleted ? weekNumber : null;
     }
 
     @Transactional

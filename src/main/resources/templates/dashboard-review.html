@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Review</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container">
+        <section class="card card-compact">
+            <h2>Test Review</h2>
+            <p class="muted">
+                <span th:text="${test.roadmapName}"></span> |
+                <span th:text="${test.topicName}"></span> |
+                Week <span th:text="${test.weekNumber}"></span>
+            </p>
+            <p class="muted">Score: <span th:text="${test.score}"></span>%</p>
+        </section>
+
+        <section class="card" th:if="${#lists.isEmpty(test.questions)}">
+            <p class="muted">No questions found for this test.</p>
+        </section>
+
+        <section class="card" th:if="${!#lists.isEmpty(test.questions)}">
+            <div class="question-card" th:each="question, stat : ${test.questions}">
+                <div class="question-title">
+                    <span th:text="${stat.count}"></span>. <span th:text="${question.question}"></span>
+                </div>
+                <div class="review-row">
+                    <span class="review-label">Your answer:</span>
+                    <span th:text="${question.userAnswer} ?: 'Not answered'"></span>
+                </div>
+                <div class="review-row">
+                    <span class="review-label">Correct answer:</span>
+                    <span th:text="${question.correctAnswer}"></span>
+                </div>
+            </div>
+            <div class="test-actions">
+                <a class="ghost-btn" th:href="@{/dashboard-2}">Back to Test Logs</a>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

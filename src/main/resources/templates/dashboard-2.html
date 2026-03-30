@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Logs</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container container-tight">
+        <section class="card card-compact">
+            <h2>Test Logs</h2>
+            <p class="tagline">Track every weekly checkpoint and revisit your results.</p>
+        </section>
+
+        <section class="card">
+            <div class="empty-state" th:if="${#lists.isEmpty(tests)}">
+                No tests created yet.
+            </div>
+            <div th:if="${!#lists.isEmpty(tests)}">
+                <table class="table" id="testLogTable">
+                    <thead>
+                    <tr>
+                        <th>Roadmap</th>
+                        <th>Topic</th>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="test : ${tests}"
+                        th:attr="data-test-id=${test.id}, data-status=${test.status}">
+                        <td th:text="${test.roadmapName}"></td>
+                        <td th:text="${test.topicName}"></td>
+                        <td th:text="${test.weekNumber}"></td>
+                        <td th:text="${#temporals.format(test.createdAt, 'yyyy-MM-dd')}"></td>
+                        <td th:text="${#temporals.format(test.createdAt, 'HH:mm')}"></td>
+                        <td th:text="${test.score}"></td>
+                        <td>
+                            <span class="status-icon"
+                                  th:if="${test.status == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                <svg class="status-svg status-svg-done" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M7 12.5l3 3 7-7"></path>
+                                </svg>
+                                <span class="sr-only">Done</span>
+                            </span>
+                            <span class="status-icon"
+                                  th:if="${test.status != T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                <svg class="status-svg status-svg-pending" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 7v6l4 2"></path>
+                                </svg>
+                                <span class="sr-only">Pending</span>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="muted">Click a row to open a pending test or review results.</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const rows = document.querySelectorAll('#testLogTable tbody tr');
+    rows.forEach(row => {
+        row.addEventListener('click', () => {
+            const testId = row.dataset.testId;
+            const status = row.dataset.status;
+            if (!testId) {
+                return;
+            }
+            if (status === 'COMPLETED') {
+                window.location.href = `/dashboard-3?testId=${testId}`;
+            } else {
+                window.location.href = `/dashboard-1?testId=${testId}`;
+            }
+        });
+    });
+</script>
+</body>
+</html>

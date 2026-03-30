@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>Roadmap Detail</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
-<div class="page">
+<div class="page" th:attr="data-user-id=${userId}, data-roadmap-name=${roadmap.fieldName}">
     <div th:replace="~{fragments/nav :: nav}"></div>
     <main class="container">
         <section class="card">
@@ -31,10 +33,15 @@
             <h3>Weekly Breakdown</h3>
             <div class="week-list">
                 <div class="week-card week-detail-card" th:each="weekGroup : ${weekGroups}"
+                     th:attr="data-week-number=${weekGroup.weekNumber}"
                      th:with="weekLinks=${weekLinksByWeek[weekGroup.weekNumber]}, weekExplain=${weekExplanations[weekGroup.weekNumber]}">
                     <div class="week-header-row">
                         <div class="week-title">
                             Week <span th:text="${weekGroup.weekNumber}"></span>
+                            <span class="test-badge"
+                                  th:if="${testStatusByWeek[weekGroup.weekNumber] == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                Test Done
+                            </span>
                         </div>
                         <div class="week-actions">
                             <form class="week-link-form" th:if="${weekLinks == null}"
@@ -79,6 +86,20 @@
     </main>
 </div>
 
+<div class="test-modal-overlay" id="testModalOverlay"></div>
+<div class="test-modal" id="testModal">
+    <div class="test-modal-header">
+        <h3 id="testModalTitle">Week Completed</h3>
+        <button class="ghost-btn" type="button" id="testModalClose">Close</button>
+    </div>
+    <p class="test-modal-text">Do you want to take test?</p>
+    <div class="test-modal-actions">
+        <button class="primary-btn" type="button" id="testModalYes">Yes</button>
+        <button class="ghost-btn" type="button" id="testModalNo">No</button>
+    </div>
+    <p class="muted" id="testModalMessage"></p>
+</div>
+
 <div class="week-panel-overlay" id="weekPanelOverlay" onclick="closeWeekPanel()"></div>
 <aside class="week-panel" id="weekPanel">
     <div class="week-panel-header">
@@ -94,6 +115,21 @@
     const panel = document.getElementById('weekPanel');
     const panelTitle = document.getElementById('weekPanelTitle');
     const panelContent = document.getElementById('weekPanelContent');
+    const pageRoot = document.querySelector('.page');
+    const userId = pageRoot ? pageRoot.dataset.userId : null;
+    const roadmapName = pageRoot ? pageRoot.dataset.roadmapName : null;
+    const testModal = document.getElementById('testModal');
+    const testModalOverlay = document.getElementById('testModalOverlay');
+    const testModalTitle = document.getElementById('testModalTitle');
+    const testModalMessage = document.getElementById('testModalMessage');
+    const testModalYes = document.getElementById('testModalYes');
+    const testModalNo = document.getElementById('testModalNo');
+    const testModalClose = document.getElementById('testModalClose');
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+    const weekTopicMap = new Map();
+    const weekCards = document.querySelectorAll('.week-card[data-week-number]');
+    let testRequestInFlight = false;
 
     function openWeekPanel(button) {
         const week = button.getAttribute('data-explain-week');
@@ -122,6 +158,134 @@
         panelContent.textContent = weekExplanations[openWeek];
         overlay.classList.add('is-active');
         panel.classList.add('is-active');
+    }
+
+    if (weekCards.length) {
+        weekCards.forEach(card => {
+            const weekNumber = card.dataset.weekNumber;
+            const topics = Array.from(card.querySelectorAll('.topic-info h4'))
+                .map(item => item.textContent.trim())
+                .filter(Boolean);
+            if (weekNumber) {
+                weekTopicMap.set(weekNumber, topics);
+            }
+        });
+    }
+
+    function showTestModal(weekNumber) {
+        if (!weekNumber || !testModal) {
+            return;
+        }
+        testModalTitle.textContent = `Week ${weekNumber} Completed`;
+        testModalMessage.textContent = '';
+        testModal.dataset.weekNumber = weekNumber;
+        testModalOverlay.classList.add('is-active');
+        testModal.classList.add('is-active');
+    }
+
+    function hideTestModal() {
+        if (!testModal) {
+            return;
+        }
+        testModalOverlay.classList.remove('is-active');
+        testModal.classList.remove('is-active');
+    }
+
+    function clearWeekCompletedParam() {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has('weekCompleted')) {
+            url.searchParams.delete('weekCompleted');
+            window.history.replaceState({}, '', url);
+        }
+    }
+
+    async function createTestForWeek(weekNumber) {
+        if (testRequestInFlight) {
+            return null;
+        }
+        if (!userId || !roadmapName) {
+            throw new Error('Missing user or roadmap information.');
+        }
+        testRequestInFlight = true;
+        const topics = weekTopicMap.get(String(weekNumber)) || [];
+        const topicLabel = topics.length > 0 ? topics.join(', ') : `Week ${weekNumber}`;
+        const body = {
+            userId: Number(userId),
+            roadmapName: roadmapName,
+            topicName: topicLabel,
+            weekNumber: Number(weekNumber)
+        };
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+
+        const response = await fetch('/tests/create', {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+        testRequestInFlight = false;
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const message = payload?.error || 'Failed to create test.';
+            throw new Error(message);
+        }
+        return response.json();
+    }
+
+    function attachModalHandlers() {
+        if (!testModalYes || !testModalNo || !testModalClose || !testModalOverlay) {
+            return;
+        }
+
+        const handleNo = async () => {
+            if (!testModal || testRequestInFlight) {
+                return;
+            }
+            const weekNumber = testModal.dataset.weekNumber;
+            try {
+                await createTestForWeek(weekNumber);
+                hideTestModal();
+                clearWeekCompletedParam();
+            } catch (err) {
+                testModalMessage.textContent = err.message;
+            }
+        };
+
+        const handleYes = async () => {
+            if (!testModal || testRequestInFlight) {
+                return;
+            }
+            const weekNumber = testModal.dataset.weekNumber;
+            try {
+                const result = await createTestForWeek(weekNumber);
+                clearWeekCompletedParam();
+                if (result && result.id) {
+                    window.location.href = `/dashboard-1?testId=${result.id}`;
+                } else {
+                    testModalMessage.textContent = 'Test created but no id returned.';
+                }
+            } catch (err) {
+                testModalMessage.textContent = err.message;
+            }
+        };
+
+        testModalYes.addEventListener('click', handleYes);
+        testModalNo.addEventListener('click', handleNo);
+        testModalClose.addEventListener('click', handleNo);
+        testModalOverlay.addEventListener('click', handleNo);
+    }
+
+    attachModalHandlers();
+
+    const weekCompleted = params.get('weekCompleted');
+    if (weekCompleted) {
+        showTestModal(weekCompleted);
     }
 </script>
 </body>

@@ -1,0 +1,209 @@
+SelfEdu
+An AI-Powered Personalized Learning Roadmap Generator for Self-Study
+Harsh Jain¹, Sayli Vekhande¹, Arya Ratnakar¹, Sumedha Patil²
+¹Department of Computer Engineering, Terna Engineering College, Navi Mumbai, 400706, Maharashtra, India ²Assistant Professor, Department of Computer Engineering, Terna Engineering College, Navi Mumbai, 400706, Maharashtra, India
+harshjain@ternaengg.ac.in | sayliVekhande@ternaengg.ac.in | aryaratnakar@ternaengg.ac.in | sumedha.patil@ternaengg.ac.in
+Abstract
+The rapid expansion of digital learning resources has created an overwhelming challenge for self-directed learners: the inability to identify what to learn, in what sequence, and how to monitor their own progress effectively. Without structured guidance, students frequently experience confusion, disengagement, and inconsistent learning outcomes. This paper presents SelfEdu, an AI-powered personalized learning roadmap generator designed to systematically address the challenges faced by independent learners. The system leverages a Large Language Model (LLM)-based AI engine combined with rule-based structuring logic to dynamically generate tailored learning paths based on the user's stated goals, existing skill level, and areas of interest. SelfEdu integrates three core modules: an AI-driven roadmap generation engine, a real-time progress tracking system, and an interactive learning dashboard that provides continuous visibility into a learner's journey from beginner to advanced levels. The system was developed using a Spring Boot backend, a PostgreSQL relational database for persistent data storage, and a RESTful API architecture to facilitate seamless AI integration. Experimental evaluation conducted with multiple users across varied learning goals demonstrated that SelfEdu significantly improved learning organization, enhanced user engagement, and provided clearer structured progression compared to traditional unguided self-study approaches. Performance testing confirmed a roadmap generation time consistently below five seconds, stable system response, and high usability scores. The proposed system establishes a scalable and intelligent foundation for modern self-learning and positions itself as a viable solution for the evolving demands of EdTech.
+Keywords: AI in Education, Personalized Learning, Roadmap Generation, Self-Learning, EdTech, Adaptive Learning Systems, LLM, Progress Tracking.
+I. INTRODUCTION
+The proliferation of online learning platforms, open courseware, and digital educational resources has fundamentally transformed how individuals acquire new skills and knowledge. Platforms such as Coursera, edX, Khan Academy, and YouTube collectively host millions of hours of educational content, placing an unprecedented volume of learning material at the fingertips of motivated learners worldwide. Despite this abundance, a critical challenge persists: the absence of structured guidance in self-directed learning environments.
+Students engaged in self-study frequently encounter difficulty in three core areas. First, they struggle to determine what to learn — deciding which topics are relevant to their goals amid a vast and often overlapping sea of resources. Second, they face uncertainty about the optimal order in which to learn, leading to the pursuit of advanced concepts without adequate foundational knowledge. Third, and perhaps most critically, learners lack effective mechanisms to track their own progress and maintain sustained motivation over time.
+This structural deficiency results in inefficient learning trajectories, frequent dropout from self-imposed learning plans, and ultimately, a failure to achieve intended skill outcomes. Traditional learning management systems (LMS) and online course platforms address some of these challenges by providing static, pre-defined curricula. However, these systems are inherently rigid and do not adapt to the unique goals, backgrounds, and learning pace of individual users [1].
+Recent advancements in Artificial Intelligence (AI), and specifically in Large Language Models (LLMs), open a compelling avenue to address these limitations. AI-based systems possess the capability to analyze user-provided context, interpret learning objectives, and generate coherent, topic-structured learning pathways dynamically. When integrated with progress tracking and visualization tools, such systems can provide the kind of personalized, adaptive guidance that has traditionally only been available through human instructors or formal educational institutions [2].
+This paper presents SelfEdu, an AI-powered personalized learning roadmap generator designed to bridge the gap between the availability of online learning resources and the structural guidance required for effective self-study. By combining LLM-based roadmap generation with an interactive progress tracking dashboard, SelfEdu provides learners with a comprehensive, self-managed learning experience that is both intelligent and adaptive.
+II. LITERATURE REVIEW
+The application of artificial intelligence in educational technology has been the subject of extensive research over the past two decades. Several foundational studies and system proposals provide relevant context for the development of SelfEdu and highlight both the progress made and the gaps that remain unaddressed.
+Beck, Stern, and Haugsjaa [1] established early theoretical and practical groundwork for AI applications in education, demonstrating that personalized content delivery through AI-driven systems significantly improves learner engagement and cognitive outcomes. Their work forms the conceptual basis for any AI-powered educational tool that seeks to adapt to individual learner characteristics.
+Chen et al. [2] explored personalized recommendation systems in the context of e-learning and demonstrated that tailored content suggestions improve learning efficiency compared to generic content provision. However, their approach focused primarily on resource recommendation rather than the generation of structured, sequential learning roadmaps with defined topic progressions.
+VanLehn [3] provided a comprehensive review of Intelligent Tutoring Systems (ITS), noting that these systems are highly effective within their specific domains but are constrained by the high cost and complexity of their development. Their domain-specificity limits applicability to broad, self-directed learning scenarios where user goals are diverse and unpredictable.
+Graf and Kinshuk [4] examined advanced Learning Management Systems and identified their strength in activity tracking and content delivery management. However, their analysis also highlighted a critical limitation: existing LMS platforms do not incorporate dynamic, AI-based learning path planning and cannot adapt curricula in real time based on learner goals.
+Brusilovsky [5] investigated adaptive and intelligent web-based educational systems and emphasized the importance of user modelling and adaptive navigation support. While his framework advances the concept of adaptivity in education, the reviewed systems still lack integration between roadmap generation and real-time progress tracking into a unified platform.
+Table I: Summary of Related Works
+Ref.
+Authors
+Contribution
+Strengths
+Limitations
+[1]
+Beck et al.
+AI applications in education showing personalized content improves engagement
+Broad AI perspective
+No roadmap generation
+[2]
+Chen et al.
+Personalized recommendation systems for e-learning improve learning efficiency
+Content personalization
+No structured path generation
+[3]
+VanLehn
+Intelligent tutoring systems (ITS) provide guided feedback and domain-specific help
+Domain guidance
+Limited to specific subjects
+[4]
+Graf & Kinshuk
+Advanced LMS platforms for tracking learning activities and managing content
+Progress tracking
+No AI-based planning
+[5]
+Brusilovsky
+Adaptive web-based education systems that respond to user behaviour and preferences
+Adaptive content
+No goal-based roadmaps
+2.1 Research Gap
+A critical review of existing literature reveals that while individual components of personalized learning — such as recommendation engines, adaptive content delivery, and progress tracking — have been studied in isolation, no existing system provides a cohesive, integrated solution that combines all these capabilities. Specifically, the following gaps are identified:
+Absence of AI-driven, goal-based structured roadmap generation that can be triggered dynamically from user input.
+Limited personalization that adapts to the user's specific learning objectives rather than broad subject categories.
+Lack of integration between AI-generated roadmap content and real-time progress tracking mechanisms.
+No interactive, learner-facing dashboard that consolidates roadmap visualization and progress management in a single unified interface.
+Most systems remain domain-specific and do not generalize across diverse subject areas.
+2.2 Proposed System
+To address the identified research gaps, this paper proposes SelfEdu — an AI-powered personalized learning roadmap generator with the following key characteristics:
+An LLM-based AI engine that generates structured, topic-wise learning roadmaps dynamically based on user-specified learning goals.
+Fully personalized learning paths that progress logically from beginner to advanced levels.
+An interactive progress tracking module that allows learners to mark topics as complete and visualize their overall learning journey.
+A unified dashboard interface for managing all active learning roadmaps and monitoring progression.
+A scalable, REST-based system architecture designed for multi-user deployment.
+2.3 Objectives
+The primary objective of this research is to design and implement an AI-powered personalized learning roadmap system that improves the efficiency and structure of self-directed learning. The specific objectives are as follows:
+To design and implement an AI-based roadmap generation system using Large Language Model APIs.
+To deliver fully personalized learning paths that adapt to user goals and prior skill levels.
+To structure topic-wise progression from foundational concepts to advanced competencies.
+To develop an interactive learning dashboard for centralized roadmap and progress management.
+To improve overall self-learning efficiency, clarity, and learning continuity.
+To enhance learner engagement through visual progress indicators.
+To validate system performance through experimental user testing and evaluation.
+III. SYSTEM DESIGN & FLOW CHART
+SelfEdu is architected as a three-layer system that separates concerns between user-facing interaction, application-level logic, and persistent data management. This modular design ensures scalability, maintainability, and clear separation of responsibilities across system components.
+3.1 System Architecture
+Layer 1: User Interface Layer
+The User Interface Layer constitutes the front-end of SelfEdu and serves as the primary point of interaction between learners and the system. It is built using standard web technologies — HTML, CSS, and JavaScript — to ensure broad accessibility across devices and browsers.
+The interface provides two principal views. The Roadmap Generation View allows users to input their learning goals in natural language (for example, "Learn Full Stack Web Development" or "Master Data Science"). This input is submitted to the AI engine to initiate roadmap generation. The Learning Dashboard provides a centralized view of all active and completed roadmaps associated with the user's account. Each roadmap is displayed as a learning card with topic-level progress indicators, enabling learners to track completed and pending topics at a glance.
+Layer 2: Application Layer
+The Application Layer constitutes the core processing engine of SelfEdu and is implemented using the Spring Boot framework. It handles all business logic, AI orchestration, and data processing operations through the following components:
+AI Roadmap Generation Engine: This component interfaces with an external LLM API to generate structured learning roadmaps. The engine constructs a carefully designed prompt incorporating the user's learning goal, skill level, and any additional context provided. The AI response is parsed and transformed into a structured topic hierarchy organized into logical learning phases.
+Rule-Based Topic Structuring Module: This module post-processes the AI-generated content using rule-based heuristics to ensure consistent formatting, logical topic sequencing, and appropriate difficulty progression. It enforces structural standards such as grouping foundational topics before advanced ones and maintaining a minimum topic count per phase.
+Progress Tracking Module: Responsible for recording and persisting user progress data. It processes topic completion events, calculates overall roadmap completion percentages, and provides aggregated data for dashboard visualization.
+Recommendation Engine: An auxiliary module that monitors user progress patterns and surfaces relevant suggestions for next steps or supplementary topics based on the learning trajectory.
+Layer 3: Data Layer
+The Data Layer is responsible for persistent storage, retrieval, and management of all system data. It utilizes a PostgreSQL relational database due to its reliability, ACID compliance, and suitability for structured educational data.
+Users Table: Stores authenticated user profiles including credentials, registration metadata, and account preferences.
+Roadmaps Table: Contains all AI-generated roadmaps with associated metadata including goal text, generation timestamp, and overall structure.
+Topics Table: Stores individual topic entries linked to their parent roadmaps, including topic names, phase groupings, and sequence order.
+Progress Table: Tracks user-topic interaction records, storing completion status, timestamps, and interaction history.
+IV. SYSTEM WORKFLOW
+The operational workflow of SelfEdu is designed to be intuitive and linear, minimizing friction for the learner while ensuring the backend processes execute reliably. The complete workflow proceeds as follows:
+User Registration and Authentication: New users register on the platform by providing credentials. The system creates a secure user account and grants access to the learning environment.
+Learning Goal Input: Upon login, the user is presented with the Roadmap Generator interface. The user enters their learning goal in natural language. The system validates the input and forwards it to the AI engine.
+AI Roadmap Generation: The Application Layer constructs a structured prompt and queries the LLM API. The AI model generates a comprehensive topic list organized into logical learning phases. The rule-based structuring module then processes and validates the output for consistency and completeness.
+Roadmap Activation: The generated roadmap is presented to the user for review. Upon confirmation, the user clicks "Start Learning" and the roadmap is saved to the database and added to the user's active dashboard.
+Dashboard Management: The user's dashboard displays all active roadmaps as learning cards. Each card shows the roadmap title, total topics, completed topics, and a visual progress bar.
+Topic-Level Progress Tracking: As the learner completes individual topics, they mark them as complete within the roadmap interface. The system updates completion records in real time and recalculates progress percentages.
+Continuous Learning Updates: The system continuously reflects updated progress data on the dashboard, providing the learner with a persistent, motivating view of their learning journey.
+V. IMPLEMENTATION
+SelfEdu was implemented on a standard development environment using the following technology stack, selected to balance performance, development efficiency, and scalability:
+Backend Framework: Spring Boot (Java) was used to implement the REST API layer, business logic components, and AI integration modules. Spring Boot's auto-configuration capabilities and robust ecosystem support rapid development of production-grade applications.
+Frontend: HTML5, CSS3, and vanilla JavaScript were used to develop the user interface layer. This lightweight approach ensures fast load times and broad device compatibility without introducing unnecessary framework overhead.
+Database: PostgreSQL was selected as the relational database management system. Its support for complex queries, referential integrity, and concurrent access patterns makes it well-suited for multi-user educational applications.
+AI Integration: The system interfaces with an external LLM API via RESTful HTTP calls. Prompt engineering techniques were applied to maximize the relevance, structure, and consistency of AI-generated roadmaps.
+Architecture: The system follows a RESTful service-oriented architecture with clearly defined API endpoints for user management, roadmap generation, and progress tracking operations.
+The experimental setup involved configuring the system with a PostgreSQL instance, deploying the Spring Boot application on a local server, and connecting to the LLM API for roadmap generation. Multiple user profiles were created with diverse learning goals spanning domains including Web Development, Data Science, Machine Learning, Cloud Computing, and Digital Marketing. Each goal was submitted to the system to evaluate roadmap quality, structure, and generation performance.
+A total of 50+ test cases were executed to validate system behaviour across varied inputs, concurrent user sessions, and edge cases including ambiguous goal inputs and very broad goal descriptions. System logs, API response timestamps, and progress tracking records were used to capture performance data.
+Fig. 1.Home Page
+Fig. 2.Java Development Roadmap Generated for 3 Months
+Fig. 3.User Learning Page
+Fig. 4. Dev Ops Roadmap 3 Months with Tracking Progress
+Fig. 5.Roadmap gives Youtube Links and Short Explaination about Topic 
+VI. RESULTS
+A. System Performance
+The system was tested across a diverse set of learning goals and user scenarios. The following key performance observations were recorded during experimental evaluation:
+Structured, topic-wise roadmaps were successfully generated for all tested learning goals without failure.
+Roadmap generation time was consistently below five seconds across all test cases, with an average response time under three seconds.
+Progress tracking accurately reflected user interactions in real time, with a tracking accuracy rate approaching 98%.
+The system maintained stable performance across concurrent user sessions with no observed degradation in response times.
+User task completion rate — measured as the proportion of users who successfully generated and activated a roadmap in a single session — reached 92%.
+Table II: System Performance Metrics
+Metric
+Observed Value
+Benchmark / Target
+Roadmap Generation Time
+< 5 seconds
+< 10 seconds
+System Response Time
+< 3 seconds
+< 5 seconds
+User Task Completion Rate
+92%
+> 85%
+Progress Tracking Accuracy
+~98%
+> 95%
+User Satisfaction Score
+4.4 / 5.0
+> 4.0 / 5.0
+Concurrent User Support
+50+ users tested
+Scalable
+B. User Evaluation
+User evaluation was conducted through structured usability testing sessions with a sample of self-learners drawn from the target demographic. Participants were asked to use the system to generate a roadmap for a topic of their choice, navigate the dashboard, and mark topics as complete. Post-session surveys collected feedback on usability, usefulness, and overall satisfaction.
+91% of participants reported that the generated roadmap provided a clearer learning direction than their previous self-study approach.
+87% stated that the progress tracking feature increased their motivation to continue learning.
+The average user satisfaction score was 4.4 out of 5.0.
+83% of users indicated they would use SelfEdu as a primary tool for their future self-study activities.
+VII. DISCUSSION
+The experimental results demonstrate that AI-based roadmap generation significantly improves the quality and structure of self-directed learning. SelfEdu successfully addresses the three primary challenges of self-study identified in the introduction: what to learn, in what order to learn it, and how to track progress. By generating structured, topic-ordered roadmaps in response to natural language goals, the system eliminates the cognitive overhead of curriculum planning and allows learners to immediately focus on the act of learning itself.
+Compared to traditional unguided self-study and static online courses, SelfEdu offers several distinct advantages. The AI-generated roadmaps provide clear directional guidance without constraining learners to a fixed, non-adaptable curriculum. The interactive progress tracking dashboard maintains learner motivation by providing continuous visual feedback on accomplishments.
+Table III: Comparative Analysis — SelfEdu vs. Existing Approaches
+Feature
+SelfEdu
+Traditional LMS
+Static Courses
+Generic Tutors
+AI Roadmap Generation
+Yes
+No
+No
+Partial
+Personalized Learning Path
+Yes
+No
+No
+Yes
+Real-Time Progress Tracking
+Yes
+Yes
+No
+No
+Goal-Based Structuring
+Yes
+No
+No
+No
+Interactive Dashboard
+Yes
+Yes
+No
+No
+Adaptive Recommendations
+Yes
+No
+No
+Partial
+Despite these advantages, the system presents certain limitations that should be acknowledged. The quality of generated roadmaps is inherently dependent on the underlying LLM's accuracy and the quality of the prompt engineering employed. In rare cases, AI-generated topic lists for highly niche or interdisciplinary subjects may require manual curation. Additionally, the system currently requires consistent internet connectivity for roadmap generation, limiting accessibility in low-bandwidth environments. Future iterations should explore caching mechanisms and offline support to address this constraint.
+VIII. CONCLUSION
+This paper presented SelfEdu, an AI-powered personalized learning roadmap generator that enables structured, goal-driven self-study. The system successfully integrates LLM-based roadmap generation with real-time progress tracking and an interactive dashboard to create a comprehensive self-learning management platform. Experimental evaluation confirmed that SelfEdu significantly improves learning organization, user engagement, and structured progression when compared to unguided self-study approaches.
+The system effectively overcomes the limitations of traditional learning management systems by introducing dynamic, personalized roadmap generation that adapts to individual learning goals. Its scalable REST-based architecture and modular design position it well for future enhancements and broader deployment.
+Future work will focus on the following enhancements:
+AI-based difficulty adaptation that dynamically adjusts roadmap complexity based on learner progress data.
+Direct integration with online learning resources including YouTube, Coursera, and Udemy to provide topic-level resource recommendations.
+Offline support through intelligent caching of roadmap data, enabling uninterrupted access in low-connectivity environments.
+Collaborative learning features enabling peer groups to share and co-navigate roadmaps.
+Advanced analytics providing learners with data-driven insights into their learning velocity and consistency patterns.
+ACKNOWLEDGEMENT
+The authors would like to express their sincere gratitude to the faculty and management of Terna Engineering College for providing the necessary support, infrastructure, and resources to carry out this research successfully. Special thanks are extended to the project guide, Prof. Sumedha Patil, for her invaluable guidance, continuous encouragement, and constructive technical suggestions throughout the design and development of the SelfEdu system. The authors also acknowledge the contributions of the student participants who generously provided their time and feedback during usability evaluation. Finally, heartfelt appreciation is extended to all individuals who directly or indirectly contributed to the successful completion of this research work.
+REFERENCES
+[1] J. E. Beck, M. Stern, and E. Haugsjaa, "Applications of AI in Education," IEEE Intelligent Systems, vol. 11, no. 6, pp. 11–15, Nov.–Dec. 1996.
+[2] X. Chen, S. Vorvoreanu, and K. Madhavan, "Mining Social Media Data for Understanding Students' Learning Experiences," IEEE Transactions on Learning Technologies, vol. 7, no. 3, pp. 246–259, 2014.
+[3] K. VanLehn, "The Behavior of Intelligent Tutoring Systems: A Meta-Analysis," International Journal of Artificial Intelligence in Education, vol. 21, no. 1–2, pp. 197–221, 2011.
+[4] S. Graf and Kinshuk, "Advanced Adaptivity in Learning Management Systems by Considering Learning Styles," in Proc. IEEE/WIC/ACM International Conference on Web Intelligence, pp. 235–238, 2009.
+[5] P. Brusilovsky, "Adaptive and Intelligent Web-Based Educational Systems," International Journal of Artificial Intelligence in Education, vol. 13, no. 2–4, pp. 159–172, 2003.

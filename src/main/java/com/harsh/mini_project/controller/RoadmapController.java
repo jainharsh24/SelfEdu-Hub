@@ -5,6 +5,7 @@ import com.harsh.mini_project.model.Roadmap;
 import com.harsh.mini_project.model.Topic;
 import com.harsh.mini_project.service.PdfExportService;
 import com.harsh.mini_project.service.RoadmapService;
+import com.harsh.mini_project.service.TestService;
 import com.harsh.mini_project.service.UserService;
 import com.harsh.mini_project.service.WeekExplanationService;
 import com.harsh.mini_project.service.WeekLinksService;
@@ -30,6 +31,7 @@ public class RoadmapController {
     private final RoadmapService roadmapService;
     private final PdfExportService pdfExportService;
     private final UserService userService;
+    private final TestService testService;
     private final YouTubeSearchService youTubeSearchService;
     private final WeekLinksService weekLinksService;
     private final WeekExplanationService weekExplanationService;
@@ -37,12 +39,14 @@ public class RoadmapController {
     public RoadmapController(RoadmapService roadmapService,
                              PdfExportService pdfExportService,
                              UserService userService,
+                             TestService testService,
                              YouTubeSearchService youTubeSearchService,
                              WeekLinksService weekLinksService,
                              WeekExplanationService weekExplanationService) {
         this.roadmapService = roadmapService;
         this.pdfExportService = pdfExportService;
         this.userService = userService;
+        this.testService = testService;
         this.youTubeSearchService = youTubeSearchService;
         this.weekLinksService = weekLinksService;
         this.weekExplanationService = weekExplanationService;
@@ -61,8 +65,11 @@ public class RoadmapController {
 
     @GetMapping("/roadmaps/{id}")
     public String viewRoadmap(@PathVariable Long id, Model model, Principal principal) {
-        Roadmap roadmap = roadmapService.getRoadmap(id, userService.getByUsername(principal.getName()));
+        var user = userService.getByUsername(principal.getName());
+        Roadmap roadmap = roadmapService.getRoadmap(id, user);
         model.addAttribute("roadmap", roadmap);
+        model.addAttribute("userId", user.getId());
+        model.addAttribute("testStatusByWeek", testService.getLatestStatusByWeek(user.getId(), roadmap.getFieldName()));
         model.addAttribute("weekGroups", groupByWeek(roadmap.getTopics()));
         model.addAttribute("weekLinksByWeek", weekLinksService.getWeekLinksByRoadmap(roadmap));
         model.addAttribute("weekExplanations", weekExplanationService.getExplanationsByRoadmap(roadmap));
@@ -71,7 +78,10 @@ public class RoadmapController {
 
     @PostMapping("/roadmaps/{id}/topics/{topicId}/toggle")
     public String toggleTopic(@PathVariable Long id, @PathVariable Long topicId, Principal principal) {
-        roadmapService.toggleTopic(id, topicId, userService.getByUsername(principal.getName()));
+        Integer weekCompleted = roadmapService.toggleTopic(id, topicId, userService.getByUsername(principal.getName()));
+        if (weekCompleted != null) {
+            return "redirect:/roadmaps/" + id + "?weekCompleted=" + weekCompleted;
+        }
         return "redirect:/roadmaps/" + id;
     }
 
@@ -84,13 +94,25 @@ public class RoadmapController {
     @PostMapping("/roadmaps/{id}/weeks/{weekNumber}/links")
     public String fetchWeekLinks(@PathVariable Long id, @PathVariable int weekNumber, Model model, Principal principal) {
         Roadmap roadmap = roadmapService.getRoadmap(id, userService.getByUsername(principal.getName()));
-        List<String> subtopics = new ArrayList<>();
+        Map<String, String> subtopicQueries = new LinkedHashMap<>();
         for (Topic topic : roadmap.getTopics()) {
             if (topic.getWeekNumber() == weekNumber) {
-                subtopics.addAll(topic.getSubtopics());
+                String topicName = topic.getTopicName();
+                if (topic.getSubtopics() != null) {
+                    for (String subtopic : topic.getSubtopics()) {
+                        if (subtopic == null || subtopic.isBlank()) {
+                            continue;
+                        }
+                        String query = subtopic;
+                        if (topicName != null && !topicName.isBlank()) {
+                            query = topicName + " " + subtopic;
+                        }
+                        subtopicQueries.put(subtopic, query.trim());
+                    }
+                }
             }
         }
-        Map<String, String> links = youTubeSearchService.getBestLinksForSubtopics(subtopics);
+        Map<String, String> links = youTubeSearchService.getBestLinksForSubtopics(subtopicQueries);
         weekLinksService.saveWeekLinks(roadmap, weekNumber, links);
         return "redirect:/roadmaps/" + id;
     }
@@ -105,7 +127,7 @@ public class RoadmapController {
     @GetMapping("/roadmaps/{id}/export")
     public ResponseEntity<byte[]> export(@PathVariable Long id, Principal principal) {
         Roadmap roadmap = roadmapService.getRoadmap(id, userService.getByUsername(principal.getName()));
-        byte[] pdf = pdfExportService.exportRoadmap(roadmap);
+        byte[] pdf = pdfExportService.exportRoadmap(roadmap, weekLinksService.getWeekLinksByRoadmap(roadmap));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=roadmap-" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)

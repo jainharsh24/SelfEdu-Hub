@@ -70,9 +70,9 @@ public class WeekExplanationService {
         String topicPart = topicName == null ? "this week" : topicName;
         String subtopicPart = subtopics.length() == 0 ? "No subtopics listed." : subtopics.toString();
         return "Explain the weekly topic and subtopics for a self-study student. " +
-                "Provide 4-5 short lines about the week focus and its aim. " +
-                "Then provide 3-4 short lines explaining the subtopics and how they relate. " +
-                "Keep it simple and clear. " +
+                "Start with a 2-3 line overview of the week focus and goal. " +
+                "Then provide more details about the week topic and each subtopic. " +
+                "You may use short bullet points. Keep it simple and clear. " +
                 "Week topic: " + topicPart + ". " +
                 "Subtopics: " + subtopicPart + ".";
     }

@@ -14,11 +14,15 @@ import org.springframework.stereotype.Service;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class PdfExportService {
 
-    public byte[] exportRoadmap(Roadmap roadmap) {
+    public byte[] exportRoadmap(Roadmap roadmap, Map<Integer, Map<String, String>> weekLinksByWeek) {
         Document document = new Document();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PdfWriter.getInstance(document, outputStream);
@@ -45,17 +49,54 @@ public class PdfExportService {
         addHeaderCell(table, "Milestone", headerFont);
         addHeaderCell(table, "YouTube", headerFont);
 
+        Set<Integer> renderedWeekLinks = new HashSet<>();
         for (Topic topic : roadmap.getTopics()) {
             table.addCell(new Phrase(String.valueOf(topic.getWeekNumber()), bodyFont));
             table.addCell(new Phrase(topic.getTopicName(), bodyFont));
-            table.addCell(new Phrase(String.join(", ", topic.getSubtopics()), bodyFont));
+            table.addCell(new Phrase(joinSubtopics(topic.getSubtopics()), bodyFont));
             table.addCell(new Phrase(topic.getMilestone(), bodyFont));
-            table.addCell(new Phrase(topic.getYoutubeLink(), bodyFont));
+            table.addCell(new Phrase(resolveWeekLinks(topic.getWeekNumber(), weekLinksByWeek, renderedWeekLinks), bodyFont));
         }
 
         document.add(table);
         document.close();
         return outputStream.toByteArray();
+    }
+
+    private String joinSubtopics(List<String> subtopics) {
+        if (subtopics == null || subtopics.isEmpty()) {
+            return "";
+        }
+        return String.join(", ", subtopics);
+    }
+
+    private String resolveWeekLinks(int weekNumber,
+                                    Map<Integer, Map<String, String>> weekLinksByWeek,
+                                    Set<Integer> renderedWeekLinks) {
+        if (weekLinksByWeek == null || weekLinksByWeek.isEmpty()) {
+            return "";
+        }
+        Map<String, String> links = weekLinksByWeek.get(weekNumber);
+        if (links == null || links.isEmpty() || renderedWeekLinks.contains(weekNumber)) {
+            return "";
+        }
+        renderedWeekLinks.add(weekNumber);
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, String> entry : links.entrySet()) {
+            String label = entry.getKey();
+            String url = entry.getValue();
+            if (url == null || url.isBlank()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append('\n');
+            }
+            if (label != null && !label.isBlank()) {
+                builder.append(label).append(": ");
+            }
+            builder.append(url);
+        }
+        return builder.toString();
     }
 
     private void addHeaderCell(PdfPTable table, String text, Font font) {

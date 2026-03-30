@@ -45,6 +45,26 @@ public class YouTubeSearchService {
         return result;
     }
 
+    public Map<String, String> getBestLinksForSubtopics(Map<String, String> subtopicQueries) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : subtopicQueries.entrySet()) {
+            String subtopic = entry.getKey();
+            String query = entry.getValue();
+            List<String> videoIds = searchVideoIds(query);
+            if (videoIds.isEmpty()) {
+                result.put(subtopic, buildSearchUrl(query));
+                continue;
+            }
+            String bestId = bestVideoIdByStats(query, videoIds);
+            if (bestId != null) {
+                result.put(subtopic, "https://www.youtube.com/watch?v=" + bestId);
+            } else {
+                result.put(subtopic, buildSearchUrl(query));
+            }
+        }
+        return result;
+    }
+
     private List<String> searchVideoIds(String query) {
         JsonNode response = fetchJson("/search", query);
         List<String> ids = new ArrayList<>();

@@ -17,6 +17,10 @@
     box-sizing: border-box;
 }
 
+.hidden {
+    display: none;
+}
+
 body {
     margin: 0;
     font-family: "Manrope", sans-serif;
@@ -103,6 +107,15 @@ body {
     max-width: 1100px;
     margin: 0 auto;
     padding: 40px 24px 80px;
+}
+
+.container-tight {
+    padding-top: 24px;
+}
+
+.container-home {
+    padding-top: 12px;
+    padding-bottom: 30px;
 }
 
 .hero h1 {
@@ -353,6 +366,67 @@ textarea {
     margin: 0;
 }
 
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.table th,
+.table td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table tbody tr {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background: #f3f4f6;
+}
+
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-svg {
+    width: 28px;
+    height: 28px;
+    stroke: #ffffff;
+    stroke-width: 2;
+    fill: currentColor;
+}
+
+.status-svg path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.status-svg-done {
+    color: var(--success);
+}
+
+.status-svg-pending {
+    color: #f59e0b;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
 .progress {
     width: 100%;
     height: 10px;
@@ -432,6 +506,62 @@ textarea {
     color: var(--text);
 }
 
+.test-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 60;
+}
+
+.test-modal-overlay.is-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.test-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(520px, 92vw);
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transform: translate(-50%, -50%) scale(0.98);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 70;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.test-modal.is-active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.test-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.test-modal-text {
+    margin: 0;
+}
+
+.test-modal-actions {
+    display: flex;
+    gap: 12px;
+}
+
 .week-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -447,6 +577,17 @@ textarea {
 .week-title {
     font-weight: 700;
     margin-bottom: 8px;
+}
+
+.test-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f5132;
+    background: #d1e7dd;
 }
 
 .topic-item {
@@ -466,6 +607,75 @@ textarea {
 
 .topic-info h4 {
     margin: 0 0 6px;
+}
+
+.question-card {
+    padding: 16px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 16px;
+}
+
+.question-card.is-correct {
+    border-color: var(--success);
+    background: #f0fdf4;
+}
+
+.question-card.is-incorrect {
+    border-color: var(--danger);
+    background: #fef2f2;
+}
+
+.question-title {
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.review-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    color: var(--text);
+}
+
+.review-label {
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.answer-correct {
+    color: var(--success);
+    font-weight: 600;
+}
+
+.answer-incorrect {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+.answer-missing {
+    color: var(--muted);
+    font-style: italic;
+}
+
+.test-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 16px;
 }
 
 .error {

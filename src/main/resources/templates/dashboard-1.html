@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page" th:attr="data-test-id=${testId}">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container">
+        <section class="card card-compact">
+            <h2>Weekly Test</h2>
+            <p class="muted" id="testMeta"></p>
+            <p class="muted">Status: <span id="testStatus"></span></p>
+        </section>
+
+        <section class="card" id="testEmpty">
+            <p class="muted">Loading test questions...</p>
+        </section>
+
+        <section class="card hidden" id="testContent">
+            <div id="questionsContainer"></div>
+            <div class="test-actions">
+                <button class="primary-btn" type="button" id="submitTest">Submit Test</button>
+                <a class="ghost-btn" th:href="@{/dashboard-2}">Back</a>
+            </div>
+            <p class="error-message" id="testError"></p>
+        </section>
+    </main>
+</div>
+
+<script>
+    const testPageRoot = document.querySelector('.page');
+    const submitButton = document.getElementById('submitTest');
+    const errorLabel = document.getElementById('testError');
+    let testId = testPageRoot ? testPageRoot.dataset.testId : null;
+    if (!testId) {
+        const params = new URLSearchParams(window.location.search);
+        testId = params.get('testId');
+    }
+    const testMeta = document.getElementById('testMeta');
+    const testStatus = document.getElementById('testStatus');
+    const testEmpty = document.getElementById('testEmpty');
+    const testContent = document.getElementById('testContent');
+    const questionsContainer = document.getElementById('questionsContainer');
+    const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+
+    function setLoadingState(message) {
+        if (testEmpty) {
+            testEmpty.classList.remove('hidden');
+            testEmpty.querySelector('p').textContent = message;
+        }
+        if (testContent) {
+            testContent.classList.add('hidden');
+        }
+    }
+
+    function setReadyState() {
+        if (testEmpty) {
+            testEmpty.classList.add('hidden');
+        }
+        if (testContent) {
+            testContent.classList.remove('hidden');
+        }
+    }
+
+    let currentStatus = '';
+    let pendingSaveTimeout = null;
+
+    function renderQuestions(questions) {
+        if (!questionsContainer) {
+            return;
+        }
+        questionsContainer.innerHTML = '';
+        questions.forEach((question, index) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+
+            const title = document.createElement('div');
+            title.className = 'question-title';
+            title.textContent = `${index + 1}. ${question.question}`;
+            card.appendChild(title);
+
+            const optionList = document.createElement('div');
+            optionList.className = 'option-list';
+            (question.options || []).forEach(option => {
+                const label = document.createElement('label');
+                label.className = 'option-item';
+
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = `q_${question.id}`;
+                input.value = option;
+                if (question.userAnswer && question.userAnswer === option) {
+                    input.checked = true;
+                }
+                if (currentStatus === 'COMPLETED') {
+                    input.disabled = true;
+                }
+
+                const span = document.createElement('span');
+                span.textContent = option;
+
+                label.appendChild(input);
+                label.appendChild(span);
+                optionList.appendChild(label);
+            });
+
+            card.appendChild(optionList);
+            questionsContainer.appendChild(card);
+        });
+
+        if (currentStatus !== 'COMPLETED') {
+            const inputs = questionsContainer.querySelectorAll('input[type="radio"]');
+            inputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    scheduleDraftSave(input.name, input.value);
+                });
+            });
+        }
+    }
+
+    function scheduleDraftSave(questionName, value) {
+        if (!questionName || !value || currentStatus === 'COMPLETED') {
+            return;
+        }
+        if (pendingSaveTimeout) {
+            clearTimeout(pendingSaveTimeout);
+        }
+        pendingSaveTimeout = setTimeout(() => {
+            const questionId = Number(questionName.replace('q_', ''));
+            if (!questionId) {
+                return;
+            }
+            saveDraftAnswers([{ questionId, userAnswer: value }]);
+        }, 300);
+    }
+
+    async function saveDraftAnswers(answers) {
+        if (!testId || currentStatus === 'COMPLETED') {
+            return;
+        }
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        try {
+            const response = await fetch(`/tests/${testId}/save`, {
+                method: 'POST',
+                headers,
+                credentials: 'same-origin',
+                body: JSON.stringify({ answers })
+            });
+            if (response.ok) {
+                const payload = await response.json().catch(() => null);
+                if (payload?.status) {
+                    currentStatus = payload.status;
+                }
+            }
+        } catch (err) {
+            // Silent for background save.
+        }
+    }
+
+    async function loadTest() {
+        if (!testId) {
+            setLoadingState('Missing test id.');
+            return;
+        }
+        setLoadingState('Loading test questions...');
+        try {
+            const response = await fetch(`/tests/${testId}/take`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = payload?.error || 'Failed to load test.';
+                if (response.status === 409 && testId) {
+                    window.location.href = `/dashboard-3?testId=${testId}`;
+                    return;
+                }
+                throw new Error(message);
+            }
+            const test = await response.json();
+            if (testMeta) {
+                testMeta.textContent = `${test.roadmapName} | ${test.topicName} | Week ${test.weekNumber}`;
+            }
+            if (testStatus) {
+                testStatus.textContent = test.status || '';
+            }
+            currentStatus = test.status || '';
+            if (!test.questions || test.questions.length === 0) {
+                setLoadingState('No questions available yet. Please try again later.');
+                return;
+            }
+            renderQuestions(test.questions);
+            setReadyState();
+            if (currentStatus === 'COMPLETED' && submitButton) {
+                submitButton.disabled = true;
+                submitButton.textContent = 'Test Completed';
+            }
+        } catch (err) {
+            setLoadingState(err.message);
+        }
+    }
+
+    async function submitTest() {
+        if (!testId || !submitButton) {
+            return;
+        }
+        submitButton.disabled = true;
+        if (errorLabel) {
+            errorLabel.textContent = '';
+        }
+
+        const answers = [];
+        const questions = document.querySelectorAll('[name^="q_"]');
+        const processed = new Set();
+        questions.forEach(input => {
+            processed.add(input.name);
+        });
+
+        processed.forEach(name => {
+            const questionId = Number(name.replace('q_', ''));
+            const selected = document.querySelector(`input[name="${name}"]:checked`);
+            if (questionId) {
+                answers.push({
+                    questionId,
+                    userAnswer: selected ? selected.value : null
+                });
+            }
+        });
+
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+
+        try {
+            const response = await fetch(`/tests/${testId}/submit`, {
+                method: 'POST',
+                headers,
+                credentials: 'same-origin',
+                body: JSON.stringify({ answers })
+            });
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = payload?.error || 'Failed to submit test.';
+                if (response.status === 409 && testId) {
+                    window.location.href = `/dashboard-3?testId=${testId}`;
+                    return;
+                }
+                throw new Error(message);
+            }
+            window.location.href = `/dashboard-3?testId=${testId}`;
+        } catch (err) {
+            if (errorLabel) {
+                errorLabel.textContent = err.message;
+            }
+        } finally {
+        if (currentStatus !== 'COMPLETED') {
+            submitButton.disabled = false;
+        }
+        }
+    }
+
+    if (submitButton) {
+        submitButton.addEventListener('click', submitTest);
+    }
+
+    loadTest();
+</script>
+</body>
+</html>

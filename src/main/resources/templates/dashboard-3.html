@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Review</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page" th:attr="data-test-id=${testId}">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container">
+        <section class="card card-compact">
+            <h2>Test Review</h2>
+            <p class="muted" id="reviewMeta"></p>
+            <p class="muted">Score: <span id="reviewScore"></span>%</p>
+        </section>
+
+        <section class="card" id="reviewEmpty">
+            <p class="muted">Loading test review...</p>
+        </section>
+
+        <section class="card hidden" id="reviewContent">
+            <div id="reviewQuestions"></div>
+            <div class="test-actions">
+                <a class="ghost-btn" th:href="@{/dashboard-2}">Back to Test Logs</a>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    const reviewRoot = document.querySelector('.page');
+    let reviewTestId = reviewRoot ? reviewRoot.dataset.testId : null;
+    if (!reviewTestId) {
+        const params = new URLSearchParams(window.location.search);
+        reviewTestId = params.get('testId');
+    }
+    const reviewMeta = document.getElementById('reviewMeta');
+    const reviewScore = document.getElementById('reviewScore');
+    const reviewEmpty = document.getElementById('reviewEmpty');
+    const reviewContent = document.getElementById('reviewContent');
+    const reviewQuestions = document.getElementById('reviewQuestions');
+
+    function setReviewLoading(message) {
+        if (reviewEmpty) {
+            reviewEmpty.classList.remove('hidden');
+            reviewEmpty.querySelector('p').textContent = message;
+        }
+        if (reviewContent) {
+            reviewContent.classList.add('hidden');
+        }
+    }
+
+    function setReviewReady() {
+        if (reviewEmpty) {
+            reviewEmpty.classList.add('hidden');
+        }
+        if (reviewContent) {
+            reviewContent.classList.remove('hidden');
+        }
+    }
+
+    function renderReviewQuestions(questions) {
+        if (!reviewQuestions) {
+            return;
+        }
+        reviewQuestions.innerHTML = '';
+        questions.forEach((question, index) => {
+            const card = document.createElement('div');
+            const userAnswer = question.userAnswer || '';
+            const correctAnswer = question.correctAnswer || '';
+            const isCorrect = userAnswer && correctAnswer &&
+                userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+            card.className = `question-card ${isCorrect ? 'is-correct' : 'is-incorrect'}`;
+
+            const title = document.createElement('div');
+            title.className = 'question-title';
+            title.textContent = `${index + 1}. ${question.question}`;
+            card.appendChild(title);
+
+            const userRow = document.createElement('div');
+            userRow.className = 'review-row';
+            const userLabel = document.createElement('span');
+            userLabel.className = 'review-label';
+            userLabel.textContent = 'Your answer:';
+            const userValue = document.createElement('span');
+            if (userAnswer) {
+                userValue.className = isCorrect ? 'answer-correct' : 'answer-incorrect';
+                userValue.textContent = userAnswer;
+            } else {
+                userValue.className = 'answer-missing';
+                userValue.textContent = 'Not answered';
+            }
+            userRow.appendChild(userLabel);
+            userRow.appendChild(userValue);
+            card.appendChild(userRow);
+
+            const correctRow = document.createElement('div');
+            correctRow.className = 'review-row';
+            const correctLabel = document.createElement('span');
+            correctLabel.className = 'review-label';
+            correctLabel.textContent = 'Correct answer:';
+            const correctValue = document.createElement('span');
+            correctValue.className = 'answer-correct';
+            correctValue.textContent = correctAnswer || 'Not available';
+            correctRow.appendChild(correctLabel);
+            correctRow.appendChild(correctValue);
+            card.appendChild(correctRow);
+
+            reviewQuestions.appendChild(card);
+        });
+    }
+
+    async function loadReview() {
+        if (!reviewTestId) {
+            setReviewLoading('Missing test id.');
+            return;
+        }
+        setReviewLoading('Loading test review...');
+        try {
+            const response = await fetch(`/tests/${reviewTestId}/review`, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                const message = payload?.error || 'Failed to load test review.';
+                throw new Error(message);
+            }
+            const test = await response.json();
+            if (reviewMeta) {
+                reviewMeta.textContent = `${test.roadmapName} | ${test.topicName} | Week ${test.weekNumber}`;
+            }
+            if (reviewScore) {
+                reviewScore.textContent = test.score ?? 0;
+            }
+            if (!test.questions || test.questions.length === 0) {
+                setReviewLoading('No questions found for this test.');
+                return;
+            }
+            renderReviewQuestions(test.questions);
+            setReviewReady();
+        } catch (err) {
+            setReviewLoading(err.message);
+        }
+    }
+
+    loadReview();
+</script>
+</body>
+</html>

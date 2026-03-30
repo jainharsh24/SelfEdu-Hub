@@ -6,6 +6,7 @@
     <div class="nav-links">
         <a th:href="@{/}">Home</a>
         <a th:href="@{/dashboard}">Learning</a>
+        <a th:href="@{/dashboard-2}" sec:authorize="isAuthenticated()">Tests</a>
         <div class="nav-auth" sec:authorize="isAuthenticated()">
             <span class="nav-user" sec:authentication="name"></span>
             <form th:action="@{/logout}" method="post">
