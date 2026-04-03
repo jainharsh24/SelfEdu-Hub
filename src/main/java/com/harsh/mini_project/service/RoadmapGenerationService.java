@@ -8,19 +8,25 @@ import com.harsh.mini_project.dto.RoadmapRequest;
 import com.harsh.mini_project.dto.RoadmapResponse;
 import com.harsh.mini_project.dto.RoadmapWeek;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class RoadmapGenerationService {
     private final GroqService groqService;
     private final ObjectMapper objectMapper;
+    private final PredefinedRoadmapCatalog predefinedRoadmapCatalog;
 
-    public RoadmapGenerationService(GroqService groqService, ObjectMapper objectMapper) {
+    public RoadmapGenerationService(GroqService groqService,
+                                    ObjectMapper objectMapper,
+                                    PredefinedRoadmapCatalog predefinedRoadmapCatalog) {
         this.groqService = groqService;
         this.objectMapper = objectMapper;
+        this.predefinedRoadmapCatalog = predefinedRoadmapCatalog;
     }
 
     public RoadmapResponse generateRoadmap(RoadmapRequest request) {
@@ -28,25 +34,80 @@ public class RoadmapGenerationService {
     }
 
     public RoadmapDraft generateDraft(RoadmapRequest request) {
-        String rawJson = groqService.generateRoadmapJson(request);
+        boolean hasUserTopics = StringUtils.hasText(request.getSyllabusTopics());
+        Optional<PredefinedRoadmapCatalog.PredefinedRoadmap> predefined =
+                predefinedRoadmapCatalog.findRoadmap(request.getField(), request.getLevel());
+        if (predefined.isPresent() && !hasUserTopics) {
+            RoadmapResponse response = predefinedRoadmapCatalog
+                    .buildResponse(request.getField(), request.getLevel(), request.getDurationMonths())
+                    .orElseThrow(() -> new IllegalStateException("Predefined roadmap is missing."));
+            normalizeWeeks(response, request.getDurationMonths());
+            return new RoadmapDraft(request, response, safeSerialize(response));
+        }
+
+        RoadmapRequest generationRequest = request;
+        if (predefined.isPresent() && hasUserTopics) {
+            List<String> seeds = predefinedRoadmapCatalog.getSeedTopics(request.getField(), request.getLevel());
+            String mergedTopics = mergeSyllabusTopics(seeds, request.getSyllabusTopics());
+            generationRequest = copyRequestWithSyllabus(request, mergedTopics);
+        }
+
+        String rawJson = groqService.generateRoadmapJson(generationRequest);
         String jsonPayload = normalizeJson(rawJson);
         try {
             RoadmapResponse response = objectMapper.readValue(jsonPayload, RoadmapResponse.class);
-            normalizeWeeks(response, request.getDurationMonths());
-            addMissingSyllabusTopics(response, request);
+            normalizeWeeks(response, generationRequest.getDurationMonths());
+            addMissingSyllabusTopics(response, generationRequest);
             markSyllabusTopics(response, request);
             return new RoadmapDraft(request, response, jsonPayload);
         } catch (Exception ex) {
             try {
                 RoadmapResponse response = lenientMapper().readValue(jsonPayload, RoadmapResponse.class);
-                normalizeWeeks(response, request.getDurationMonths());
-                addMissingSyllabusTopics(response, request);
+                normalizeWeeks(response, generationRequest.getDurationMonths());
+                addMissingSyllabusTopics(response, generationRequest);
                 markSyllabusTopics(response, request);
                 return new RoadmapDraft(request, response, jsonPayload);
             } catch (Exception nested) {
                 throw new IllegalStateException("Groq returned invalid JSON for roadmap.", nested);
             }
         }
+    }
+
+    private String safeSerialize(RoadmapResponse response) {
+        try {
+            return objectMapper.writeValueAsString(response);
+        } catch (Exception ex) {
+            return "";
+        }
+    }
+
+    private RoadmapRequest copyRequestWithSyllabus(RoadmapRequest request, String syllabusTopics) {
+        RoadmapRequest copy = new RoadmapRequest();
+        copy.setField(request.getField());
+        copy.setLevel(request.getLevel());
+        copy.setDurationMonths(request.getDurationMonths());
+        copy.setSyllabusTopics(syllabusTopics);
+        return copy;
+    }
+
+    private String mergeSyllabusTopics(List<String> predefinedTopics, String userTopicsRaw) {
+        List<String> merged = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        if (predefinedTopics != null) {
+            for (String topic : predefinedTopics) {
+                String normalized = normalizeText(topic);
+                if (!normalized.isBlank() && seen.add(normalized)) {
+                    merged.add(topic.trim());
+                }
+            }
+        }
+        for (String topic : parseSyllabusTopics(userTopicsRaw)) {
+            String normalized = normalizeText(topic);
+            if (!normalized.isBlank() && seen.add(normalized)) {
+                merged.add(topic.trim());
+            }
+        }
+        return String.join(", ", merged);
     }
 
     private String normalizeJson(String rawJson) {
