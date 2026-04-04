@@ -476,7 +476,7 @@ textarea {
     position: fixed;
     top: 0;
     right: 0;
-    width: min(420px, 92vw);
+    width: min(620px, 96vw);
     height: 100vh;
     background: #ffffff;
     box-shadow: -24px 0 40px rgba(15, 23, 42, 0.12);

@@ -31,6 +31,10 @@ public class GroqService {
     }
 
     public String generateRoadmapJson(RoadmapRequest request) {
+        return generateRoadmapJson(request, List.of());
+    }
+
+    public String generateRoadmapJson(RoadmapRequest request, List<String> referenceTopics) {
         if (!StringUtils.hasText(groqProperties.getApiKey()) || "REPLACE_WITH_YOUR_GROQ_API_KEY".equals(groqProperties.getApiKey())) {
             throw new IllegalStateException("Groq API key is not configured.");
         }
@@ -45,8 +49,21 @@ public class GroqService {
                     "Use the same wording as provided where possible. " +
                     "Syllabus topics: " + syllabus + ". ";
         }
+        String referenceInstruction = "";
+        if (referenceTopics != null && !referenceTopics.isEmpty()) {
+            String referenceList = referenceTopics.stream()
+                    .map(String::trim)
+                    .filter(StringUtils::hasText)
+                    .collect(Collectors.joining(", "));
+            if (StringUtils.hasText(referenceList)) {
+                referenceInstruction = "Use the following reference topics to guide the roadmap. " +
+                        "Include them when they fit the given duration and level, but do not force all of them. " +
+                        "Reference topics: " + referenceList + ". ";
+            }
+        }
         String userPrompt = String.format(
                 "Create a %d-week learning roadmap for field \"%s\" at %s level. " +
+                        "%s" +
                         "%s" +
                         "Return STRICT JSON with this exact schema: " +
                         "{\"roadmap\":[{\"week\":1,\"topic\":\"Topic Name\",\"subtopics\":[\"Sub1\",\"Sub2\"],\"milestone\":\"Goal\"}]}. " +
@@ -54,7 +71,8 @@ public class GroqService {
                 weeks,
                 request.getField(),
                 request.getLevel().name().toLowerCase(),
-                syllabusInstruction
+                syllabusInstruction,
+                referenceInstruction
         );
 
         Map<String, Object> body = new HashMap<>();

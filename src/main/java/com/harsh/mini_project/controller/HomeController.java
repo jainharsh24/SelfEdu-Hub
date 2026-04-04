@@ -3,6 +3,7 @@ package com.harsh.mini_project.controller;
 import com.harsh.mini_project.dto.RoadmapDraft;
 import com.harsh.mini_project.dto.RoadmapRequest;
 import com.harsh.mini_project.model.Level;
+import com.harsh.mini_project.service.PredefinedRoadmapCatalog;
 import com.harsh.mini_project.service.RoadmapGenerationService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -18,17 +19,21 @@ import java.util.regex.Pattern;
 @Controller
 public class HomeController {
     private final RoadmapGenerationService roadmapGenerationService;
+    private final PredefinedRoadmapCatalog predefinedRoadmapCatalog;
     private static final int MAX_SYLLABUS_WORDS = 1500;
     private static final Pattern WORD_SPLIT = Pattern.compile("\\s+");
 
-    public HomeController(RoadmapGenerationService roadmapGenerationService) {
+    public HomeController(RoadmapGenerationService roadmapGenerationService,
+                          PredefinedRoadmapCatalog predefinedRoadmapCatalog) {
         this.roadmapGenerationService = roadmapGenerationService;
+        this.predefinedRoadmapCatalog = predefinedRoadmapCatalog;
     }
 
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("roadmapRequest", new RoadmapRequest());
         model.addAttribute("levels", Level.values());
+        model.addAttribute("subjectSuggestions", predefinedRoadmapCatalog.getAvailableSubjects());
         return "index";
     }
 
@@ -44,6 +49,7 @@ public class HomeController {
         }
         if (bindingResult.hasErrors()) {
             model.addAttribute("levels", Level.values());
+            model.addAttribute("subjectSuggestions", predefinedRoadmapCatalog.getAvailableSubjects());
             return "index";
         }
         RoadmapDraft draft = roadmapGenerationService.generateDraft(request);
