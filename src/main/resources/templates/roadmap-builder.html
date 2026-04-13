@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Generate Roadmap</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container learning-page">
+        <section class="theme-hero builder-hero">
+            <div>
+                <p class="dashboard-kicker">Generate Roadmap</p>
+                <h1>Turn a learning goal into a structured study plan.</h1>
+                <p class="dashboard-subtext">Define the field, level, and duration, then generate a roadmap built for steady weekly progress.</p>
+            </div>
+            <aside class="theme-hero-panel">
+                <p class="theme-hero-panel-label">Planner</p>
+                <div class="theme-hero-panel-item">
+                    <strong>3 inputs</strong>
+                    <span>Field, level, and duration shape the roadmap</span>
+                </div>
+                <p class="theme-hero-panel-note">Add syllabus topics when you want the generated plan to follow a specific study scope.</p>
+            </aside>
+        </section>
+
+        <section class="card">
+            <h2>Build a Roadmap</h2>
+            <form th:action="@{/generate}" th:object="${roadmapRequest}" method="post" class="form-grid" data-single-submit>
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-field">
+                    <label for="field">Field</label>
+                    <input id="field" type="text" th:field="*{field}" placeholder="Cybersecurity, Web Dev, Data Science"
+                           list="subjectSuggestions">
+                    <datalist id="subjectSuggestions">
+                        <option th:each="subject : ${subjectSuggestions}" th:value="${subject}"></option>
+                    </datalist>
+                    <span class="error" th:if="${#fields.hasErrors('field')}" th:errors="*{field}"></span>
+                </div>
+                <div class="form-field">
+                    <label for="level">Level</label>
+                    <select id="level" th:field="*{level}">
+                        <option th:each="lvl : ${levels}" th:value="${lvl}" th:text="${lvl}"></option>
+                    </select>
+                    <span class="error" th:if="${#fields.hasErrors('level')}" th:errors="*{level}"></span>
+                </div>
+                <div class="form-field">
+                    <label for="durationMonths">Duration (months)</label>
+                    <input id="durationMonths" type="number" min="1" max="24" th:field="*{durationMonths}" placeholder="3 or 6">
+                    <span class="error" th:if="${#fields.hasErrors('durationMonths')}" th:errors="*{durationMonths}"></span>
+                </div>
+                <div class="form-field form-field-full">
+                    <label for="syllabusTopics">Syllabus topics (comma-separated)</label>
+                    <textarea id="syllabusTopics" rows="4" th:field="*{syllabusTopics}"
+                              placeholder="Topic 1, Topic 2, Topic 3, Topic 4"></textarea>
+                    <span class="helper">Limit 1000-1500 words. These topics will be included in the roadmap.</span>
+                    <span class="error" th:if="${#fields.hasErrors('syllabusTopics')}" th:errors="*{syllabusTopics}"></span>
+                </div>
+                <button class="primary-btn" type="submit" data-pending-text="Generating...">Generate Roadmap</button>
+            </form>
+        </section>
+    </main>
+</div>
+<script th:src="@{/js/single-action.js}"></script>
+<script>
+    const form = document.querySelector('form');
+    form?.addEventListener('submit', () => {
+        const topicsInput = document.getElementById('syllabusTopics');
+        const durationInput = document.getElementById('durationMonths');
+        if (!topicsInput || !durationInput) {
+            return;
+        }
+        const raw = topicsInput.value || '';
+        const topics = raw.split(',').map(t => t.trim()).filter(Boolean);
+        const months = parseInt(durationInput.value || '0', 10);
+        const weeks = Math.max(4, months * 4);
+        if (topics.length > 0 && weeks > 0) {
+            const perWeek = Math.ceil(topics.length / weeks);
+            if (perWeek > 6) {
+                alert('Notice: Your syllabus is large. Some weeks may include more than 6 topics.');
+            }
+        }
+    });
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ public interface TestRepository extends JpaRepository<Test, Long> {
     @EntityGraph(attributePaths = "questions")
     Optional<Test> findWithQuestionsByIdAndUserId(Long id, Long userId);
 
-    Optional<Test> findFirstByUserIdAndRoadmapNameAndWeekNumberOrderByCreatedAtDesc(Long userId, String roadmapName, int weekNumber);
+    Optional<Test> findFirstByUserIdAndRoadmapIdAndWeekNumberOrderByCreatedAtDesc(Long userId, Long roadmapId, int weekNumber);
 
-    List<Test> findByUserIdAndRoadmapNameOrderByCreatedAtDesc(Long userId, String roadmapName);
+    List<Test> findByUserIdAndRoadmapIdOrderByCreatedAtDesc(Long userId, Long roadmapId);
 }

@@ -8,72 +8,106 @@
 <body>
 <div class="page">
     <div th:replace="~{fragments/nav :: nav}"></div>
-    <main class="container container-tight">
-        <section class="card card-compact">
-            <h2>Test Logs</h2>
-            <p class="tagline">Track every weekly checkpoint and revisit your results.</p>
+    <main class="container learning-page">
+        <section class="theme-hero testlog-hero">
+            <div>
+                <p class="dashboard-kicker">Test Logs</p>
+                <h1>Track every attempt, retest, and score movement.</h1>
+                <p class="dashboard-subtext">Review test history by roadmap and week so learners can quickly reopen pending or completed assessments.</p>
+            </div>
+            <aside class="theme-hero-panel">
+                <p class="theme-hero-panel-label">Assessment View</p>
+                <div class="theme-hero-panel-item">
+                    <strong th:text="${#lists.isEmpty(testLogGroups) ? 0 : #lists.size(testLogGroups)}">0</strong>
+                    <span>Roadmaps with test history</span>
+                </div>
+                <p class="theme-hero-panel-note">Use the log below to jump back into an unfinished test or review a completed one.</p>
+            </aside>
         </section>
 
         <section class="card">
             <div class="empty-state" th:if="${#lists.isEmpty(tests)}">
                 No tests created yet.
             </div>
-            <div th:if="${!#lists.isEmpty(tests)}">
-                <table class="table" id="testLogTable">
-                    <thead>
-                    <tr>
-                        <th>Roadmap</th>
-                        <th>Topic</th>
-                        <th>Week</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Score</th>
-                        <th>Status</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="test : ${tests}"
-                        th:attr="data-test-id=${test.id}, data-status=${test.status}">
-                        <td th:text="${test.roadmapName}"></td>
-                        <td th:text="${test.topicName}"></td>
-                        <td th:text="${test.weekNumber}"></td>
-                        <td th:text="${#temporals.format(test.createdAt, 'yyyy-MM-dd')}"></td>
-                        <td th:text="${#temporals.format(test.createdAt, 'HH:mm')}"></td>
-                        <td th:text="${test.score}"></td>
-                        <td>
-                            <span class="status-icon"
-                                  th:if="${test.status == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
-                                <svg class="status-svg status-svg-done" viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M7 12.5l3 3 7-7"></path>
-                                </svg>
-                                <span class="sr-only">Done</span>
-                            </span>
-                            <span class="status-icon"
-                                  th:if="${test.status != T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
-                                <svg class="status-svg status-svg-pending" viewBox="0 0 24 24" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M12 7v6l4 2"></path>
-                                </svg>
-                                <span class="sr-only">Pending</span>
-                            </span>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <p class="muted">Click a row to open a pending test or review results.</p>
+
+            <div class="test-log-groups" th:if="${!#lists.isEmpty(testLogGroups)}">
+                <article class="test-log-roadmap" th:each="roadmapGroup : ${testLogGroups}">
+                    <h3 th:text="${roadmapGroup.roadmapName}">Roadmap Name</h3>
+
+                    <div class="test-log-week" th:each="weekGroup : ${roadmapGroup.weeks}">
+                        <div class="test-log-week-header">
+                            <h4>Week <span th:text="${weekGroup.weekNumber}"></span></h4>
+                            <span class="muted"
+                                  th:text="'Attempts: ' + ${#lists.size(weekGroup.tests)}">Attempts: 0</span>
+                        </div>
+                        <p class="muted test-log-topic" th:text="${weekGroup.topicName}">Topic</p>
+
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>Test No.</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Open</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="test : ${weekGroup.tests}">
+                                <td th:text="${test.testNumber} ?: (${test.weekNumber} + '.1')"></td>
+                                <td th:text="${#temporals.format(test.createdAt, 'yyyy-MM-dd')}"></td>
+                                <td th:text="${#temporals.format(test.createdAt, 'HH:mm')}"></td>
+                                <td th:text="${test.score}"></td>
+                                <td>
+                                    <span class="status-icon"
+                                          th:if="${test.status == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                        <svg class="status-svg status-svg-done" viewBox="0 0 24 24" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <path d="M7 12.5l3 3 7-7"></path>
+                                        </svg>
+                                        <span class="sr-only">Done</span>
+                                    </span>
+                                    <span class="status-icon"
+                                          th:if="${test.status != T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                        <svg class="status-svg status-svg-pending" viewBox="0 0 24 24" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <path d="M12 7v6l4 2"></path>
+                                        </svg>
+                                        <span class="sr-only">Pending</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="ghost-btn open-test-btn"
+                                            type="button"
+                                            th:attr="data-test-id=${test.id}, data-status=${test.status}">
+                                        Open
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
             </div>
         </section>
     </main>
 </div>
 
+<script th:src="@{/js/single-action.js}"></script>
 <script>
-    const rows = document.querySelectorAll('#testLogTable tbody tr');
-    rows.forEach(row => {
-        row.addEventListener('click', () => {
-            const testId = row.dataset.testId;
-            const status = row.dataset.status;
+    const openButtons = document.querySelectorAll('.open-test-btn[data-test-id]');
+    openButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            if (window.SingleAction && !window.SingleAction.start(button, 'Opening...')) {
+                return;
+            }
+            const testId = button.dataset.testId;
+            const status = button.dataset.status;
             if (!testId) {
+                if (window.SingleAction) {
+                    window.SingleAction.finish(button);
+                }
                 return;
             }
             if (status === 'COMPLETED') {

@@ -25,11 +25,15 @@ public class Test {
 
     private Long userId;
 
+    private Long roadmapId;
+
     private String roadmapName;
 
     private String topicName;
 
     private int weekNumber;
+
+    private Integer attemptNumber;
 
     @Enumerated(EnumType.STRING)
     private TestStatus status;
@@ -51,6 +55,14 @@ public class Test {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getRoadmapId() {
+        return roadmapId;
+    }
+
+    public void setRoadmapId(Long roadmapId) {
+        this.roadmapId = roadmapId;
     }
 
     public String getRoadmapName() {
@@ -75,6 +87,14 @@ public class Test {
 
     public void setWeekNumber(int weekNumber) {
         this.weekNumber = weekNumber;
+    }
+
+    public Integer getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(Integer attemptNumber) {
+        this.attemptNumber = attemptNumber;
     }
 
     public TestStatus getStatus() {

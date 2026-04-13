@@ -4,11 +4,13 @@ import java.util.List;
 
 public class TestCreateRequest {
     private Long userId;
+    private Long roadmapId;
     private String roadmapName;
     private String topicName;
     private int weekNumber;
     private List<QuestionCreateRequest> questions;
     private boolean generateMcqs;
+    private boolean retest;
     private Integer questionCount;
     private String mcqTopic;
 
@@ -18,6 +20,14 @@ public class TestCreateRequest {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getRoadmapId() {
+        return roadmapId;
+    }
+
+    public void setRoadmapId(Long roadmapId) {
+        this.roadmapId = roadmapId;
     }
 
     public String getRoadmapName() {
@@ -58,6 +68,14 @@ public class TestCreateRequest {
 
     public void setGenerateMcqs(boolean generateMcqs) {
         this.generateMcqs = generateMcqs;
+    }
+
+    public boolean isRetest() {
+        return retest;
+    }
+
+    public void setRetest(boolean retest) {
+        this.retest = retest;
     }
 
     public Integer getQuestionCount() {

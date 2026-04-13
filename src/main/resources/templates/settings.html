@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container settings-page">
+        <section class="settings-hero">
+            <div>
+                <p class="dashboard-kicker">Settings</p>
+                <h1>Manage account details and learning preferences.</h1>
+                <p class="dashboard-subtext">Update your username, preferred level, domain focus, and password from one protected page.</p>
+            </div>
+        </section>
+
+        <div class="auth-message" th:if="${profileSuccess}" th:text="${profileSuccess}"></div>
+        <div class="auth-message" th:if="${passwordSuccess}" th:text="${passwordSuccess}"></div>
+        <div class="auth-error" th:if="${profileError}" th:text="${profileError}"></div>
+        <div class="auth-error" th:if="${passwordError}" th:text="${passwordError}"></div>
+
+        <section class="settings-grid">
+            <article class="card settings-card">
+                <div class="dashboard-section-header">
+                    <div>
+                        <p class="dashboard-kicker">Profile Settings</p>
+                        <h2>Username and preferences</h2>
+                    </div>
+                </div>
+
+                <form th:action="@{/settings/profile}" method="post" class="form-grid settings-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                    <div class="form-field">
+                        <label for="username">Username</label>
+                        <input id="username" name="username" type="text" minlength="3" maxlength="30"
+                               th:value="${settingsUser.username}" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="preferredLevel">Preferred Level</label>
+                        <select id="preferredLevel" name="preferredLevel" required>
+                            <option th:each="level : ${levels}"
+                                    th:value="${level}"
+                                    th:text="${level}"
+                                    th:selected="${settingsUser.preferredLevel == level}">
+                                BEGINNER
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-field form-field-full">
+                        <label for="preferredDomain">Preferred Domain</label>
+                        <input id="preferredDomain" name="preferredDomain" type="text" maxlength="100"
+                               th:value="${settingsUser.preferredDomain}" placeholder="Example: web development, data science, java backend">
+                    </div>
+
+                    <button class="primary-btn" type="submit">Save Settings</button>
+                </form>
+            </article>
+
+            <article class="card settings-card">
+                <div class="dashboard-section-header">
+                    <div>
+                        <p class="dashboard-kicker">Security</p>
+                        <h2>Change password</h2>
+                    </div>
+                </div>
+
+                <form th:action="@{/settings/password}" method="post" class="form-grid settings-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                    <div class="form-field">
+                        <label for="currentPassword">Current Password</label>
+                        <input id="currentPassword" name="currentPassword" type="password" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="newPassword">New Password</label>
+                        <input id="newPassword" name="newPassword" type="password" required minlength="6">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="6">
+                    </div>
+
+                    <button class="primary-btn" type="submit">Update Password</button>
+                </form>
+            </article>
+        </section>
+    </main>
+</div>
+</body>
+</html>

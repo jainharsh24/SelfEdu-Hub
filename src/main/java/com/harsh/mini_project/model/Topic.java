@@ -34,6 +34,10 @@ public class Topic {
 
     private boolean completed;
 
+    private Integer linkClickCount;
+
+    private Integer explanationViewCount;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "topic_subtopics", joinColumns = @JoinColumn(name = "topic_id"))
     @Column(name = "subtopic")
@@ -101,5 +105,21 @@ public class Topic {
 
     public void setRoadmap(Roadmap roadmap) {
         this.roadmap = roadmap;
+    }
+
+    public int getLinkClickCount() {
+        return linkClickCount == null ? 0 : linkClickCount;
+    }
+
+    public void setLinkClickCount(int linkClickCount) {
+        this.linkClickCount = linkClickCount;
+    }
+
+    public int getExplanationViewCount() {
+        return explanationViewCount == null ? 0 : explanationViewCount;
+    }
+
+    public void setExplanationViewCount(int explanationViewCount) {
+        this.explanationViewCount = explanationViewCount;
     }
 }

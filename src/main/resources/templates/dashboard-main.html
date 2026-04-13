@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Analytics Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<div class="page" th:attr="data-user-id=${userId}">
+    <div th:replace="~{fragments/nav :: nav}"></div>
+    <main class="container">
+        <section class="analytics-hero">
+            <div>
+                <p class="analytics-kicker">Analytics Dashboard</p>
+                <h1>Measure progress, performance, and engagement across every roadmap.</h1>
+            </div>
+            <div class="analytics-toolbar">
+                <label class="analytics-sort">
+                    <span>Sort by</span>
+                    <select id="analyticsSort">
+                        <option value="progress">Progress</option>
+                        <option value="score">Average score</option>
+                        <option value="engagement">Engagement</option>
+                    </select>
+                </label>
+            </div>
+        </section>
+
+        <section class="analytics-summary-grid" id="analyticsSummary">
+            <article class="analytics-summary-card">
+                <span>Total Roadmaps</span>
+                <strong id="summaryRoadmaps">0</strong>
+            </article>
+            <article class="analytics-summary-card">
+                <span>Total Tests</span>
+                <strong id="summaryTests">0</strong>
+            </article>
+            <article class="analytics-summary-card">
+                <span>Average Score</span>
+                <strong id="summaryAvgScore">0%</strong>
+            </article>
+            <article class="analytics-summary-card">
+                <span>Weeks Completed</span>
+                <strong id="summaryWeeksCompleted">0</strong>
+            </article>
+        </section>
+
+        <section class="analytics-state hidden" id="analyticsLoading">Loading analytics...</section>
+        <section class="analytics-state hidden" id="analyticsError"></section>
+        <section class="analytics-grid" id="analyticsGrid"></section>
+    </main>
+</div>
+
+<script>
+    const analyticsRoot = document.querySelector('.page');
+    const analyticsUserId = analyticsRoot?.dataset.userId;
+    const analyticsGrid = document.getElementById('analyticsGrid');
+    const analyticsLoading = document.getElementById('analyticsLoading');
+    const analyticsError = document.getElementById('analyticsError');
+    const analyticsSort = document.getElementById('analyticsSort');
+    let analyticsItems = [];
+
+    function scoreClass(score) {
+        if (score > 75) {
+            return 'score-high';
+        }
+        if (score >= 40) {
+            return 'score-medium';
+        }
+        return 'score-low';
+    }
+
+    function formatNumber(value) {
+        return Number(value || 0).toFixed(2).replace(/\.00$/, '');
+    }
+
+    function computeSummary(items) {
+        const totalRoadmaps = items.length;
+        const totalTests = items.reduce((sum, item) => sum + (item.testsAttempted || 0), 0);
+        const totalWeeksCompleted = items.reduce((sum, item) => sum + (item.completedWeeks || 0), 0);
+        const avgScoreOverall = totalRoadmaps === 0
+            ? 0
+            : items.reduce((sum, item) => sum + (item.avgScore || 0), 0) / totalRoadmaps;
+
+        document.getElementById('summaryRoadmaps').textContent = totalRoadmaps;
+        document.getElementById('summaryTests').textContent = totalTests;
+        document.getElementById('summaryAvgScore').textContent = `${formatNumber(avgScoreOverall)}%`;
+        document.getElementById('summaryWeeksCompleted').textContent = totalWeeksCompleted;
+    }
+
+    function renderCards(items) {
+        if (!items.length) {
+            analyticsGrid.innerHTML = '<article class="empty-state">No roadmap analytics available yet.</article>';
+            return;
+        }
+        analyticsGrid.innerHTML = items.map(item => {
+            const engagement = (item.totalLinkClicks || 0) + (item.explanationViews || 0);
+            return `
+                <article class="analytics-card">
+                    <div class="analytics-card-header">
+                        <div>
+                            <p class="analytics-label">Roadmap</p>
+                            <h2>${item.fieldName}</h2>
+                        </div>
+                        <span class="score-badge ${scoreClass(item.avgScore)}">${item.performanceLevel}</span>
+                    </div>
+                    <div class="progress analytics-progress">
+                        <div class="progress-bar" style="width:${item.progressPercent || 0}%"></div>
+                    </div>
+                    <div class="analytics-meta">
+                        <span>${formatNumber(item.progressPercent)}% progress</span>
+                        <span>Weeks ${item.completedWeeks}/${item.totalWeeks}</span>
+                    </div>
+                    <div class="analytics-metric-grid">
+                        <div><span>Tests Attempted</span><strong>${item.testsAttempted}</strong></div>
+                        <div><span>Pending Tests</span><strong>${item.pendingTests}</strong></div>
+                        <div><span>Avg Score</span><strong>${formatNumber(item.avgScore)}%</strong></div>
+                        <div><span>Highest Score</span><strong>${formatNumber(item.highestScore)}%</strong></div>
+                        <div><span>Link Clicks</span><strong>${item.totalLinkClicks}</strong></div>
+                        <div><span>Explanation Views</span><strong>${item.explanationViews}</strong></div>
+                        <div><span>Retests</span><strong>${item.retestCount}</strong></div>
+                        <div><span>Consistency</span><strong>${formatNumber(item.consistency)}</strong></div>
+                    </div>
+                    <div class="analytics-footer">
+                        <span>Completion rate ${formatNumber(item.completionRate)}%</span>
+                        <span>Engagement ${engagement}</span>
+                        <a class="ghost-btn" href="/roadmaps/${item.roadmapId}">Open roadmap</a>
+                    </div>
+                </article>
+            `;
+        }).join('');
+    }
+
+    function sortedItems(items, sortBy) {
+        const cloned = [...items];
+        if (sortBy === 'score') {
+            return cloned.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0));
+        }
+        if (sortBy === 'engagement') {
+            return cloned.sort((a, b) =>
+                ((b.totalLinkClicks || 0) + (b.explanationViews || 0)) -
+                ((a.totalLinkClicks || 0) + (a.explanationViews || 0))
+            );
+        }
+        return cloned.sort((a, b) => (b.progressPercent || 0) - (a.progressPercent || 0));
+    }
+
+    async function loadAnalytics() {
+        if (!analyticsUserId) {
+            return;
+        }
+        analyticsLoading.classList.remove('hidden');
+        analyticsError.classList.add('hidden');
+        try {
+            const response = await fetch(`/dashboard/analytics/${analyticsUserId}`, {
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to load analytics.');
+            }
+            analyticsItems = await response.json();
+            computeSummary(analyticsItems);
+            renderCards(sortedItems(analyticsItems, analyticsSort.value));
+        } catch (error) {
+            analyticsError.textContent = error.message;
+            analyticsError.classList.remove('hidden');
+        } finally {
+            analyticsLoading.classList.add('hidden');
+        }
+    }
+
+    analyticsSort?.addEventListener('change', () => {
+        renderCards(sortedItems(analyticsItems, analyticsSort.value));
+    });
+
+    loadAnalytics();
+</script>
+</body>
+</html>

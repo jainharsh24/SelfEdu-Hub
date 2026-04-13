@@ -39,6 +39,8 @@ public class Roadmap {
 
     private LocalDateTime createdAt;
 
+    private String inputSignature;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private AppUser user;
@@ -104,6 +106,14 @@ public class Roadmap {
 
     public void setUser(AppUser user) {
         this.user = user;
+    }
+
+    public String getInputSignature() {
+        return inputSignature;
+    }
+
+    public void setInputSignature(String inputSignature) {
+        this.inputSignature = inputSignature;
     }
 
     public List<Topic> getTopics() {

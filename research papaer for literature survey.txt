@@ -1,0 +1,39 @@
+1) https://ieeexplore.ieee.org/document/11410855
+AI-Driven Personalized Learning and Its Impact on Self-Efficacy Among Business Educators: A Machine Learning Approach
+
+Authors
+Sarita Peddi
+School of Business SR University, Warangal, Telangana, India
+Geetha Manoharan
+Research Supervisor School of Business SR University, Warangal, Telangana, India
+
+
+2) https://ieeexplore.ieee.org/document/11418435
+An Ontology-Based Framework for Personalized Educational Process Planning
+
+Authors
+Mustafina Dilnaz Adilbekovna
+Computer Science and Engineering, Astana IT University), Astana, Kazakhstan
+Zhukabayeva Tamara Kokenovna
+Computer Science and Engineering, Astana IT University), Astana, Kazakhstan
+
+
+
+3) https://ieeexplore.ieee.org/document/8567880
+A Concept Map-Based Learning Paths Automatic Generation Algorithm for Adaptive Learning Systems
+
+Author
+
+Zengzhen Shao
+Yancong Li
+
+
+4) https://ieeexplore.ieee.org/document/11138448
+Research on Data-Driven Student Personalized Learning Path Recommendation System
+Authors
+Yi Sihong
+Hunan Chemical Vocational and Technical College, Zhuzhou, China
+
+
+
+

@@ -19,9 +19,11 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class TestService {
+    private static final Map<String, Object> CREATE_TEST_LOCKS = new ConcurrentHashMap<>();
     private final TestRepository testRepository;
     private final GroqService groqService;
 
@@ -33,41 +35,54 @@ public class TestService {
     @Transactional
     public TestResponse createTest(TestCreateRequest request) {
         validateCreateRequest(request);
-        Test existing = testRepository.findFirstByUserIdAndRoadmapNameAndWeekNumberOrderByCreatedAtDesc(
-                request.getUserId(),
-                request.getRoadmapName().trim(),
-                request.getWeekNumber()
-        ).orElse(null);
-        if (existing != null) {
-            return toResponse(existing);
-        }
-
-        Test test = new Test();
-        test.setUserId(request.getUserId());
-        test.setRoadmapName(request.getRoadmapName().trim());
-        test.setTopicName(request.getTopicName().trim());
-        test.setWeekNumber(request.getWeekNumber());
-        test.setStatus(TestStatus.PENDING);
-        test.setScore(0.0);
-        test.setCreatedAt(LocalDateTime.now());
-
-        if (request.getQuestions() != null) {
-            for (QuestionCreateRequest questionRequest : request.getQuestions()) {
-                if (questionRequest == null) {
-                    throw new IllegalArgumentException("Question data is required");
+        String lockKey = request.getUserId() + ":" + request.getRoadmapId() + ":" + request.getWeekNumber();
+        synchronized (CREATE_TEST_LOCKS.computeIfAbsent(lockKey, key -> new Object())) {
+            Test existing = testRepository.findFirstByUserIdAndRoadmapIdAndWeekNumberOrderByCreatedAtDesc(
+                    request.getUserId(),
+                    request.getRoadmapId(),
+                    request.getWeekNumber()
+            ).orElse(null);
+            if (existing != null) {
+                if (existing.getStatus() != TestStatus.COMPLETED) {
+                    return toResponse(existing);
                 }
-                Question question = new Question();
-                question.setQuestion(questionRequest.getQuestion());
-                if (questionRequest.getOptions() != null) {
-                    question.setOptions(questionRequest.getOptions());
-                }
-                question.setCorrectAnswer(questionRequest.getCorrectAnswer());
-                test.addQuestion(question);
             }
-        }
+            int attemptNumber = 1;
+            if (existing != null && existing.getStatus() == TestStatus.COMPLETED) {
+                attemptNumber = normalizeAttemptNumber(existing) + 1;
+            }
+            if (attemptNumber <= 0) {
+                attemptNumber = 1;
+            }
+            Test test = new Test();
+            test.setUserId(request.getUserId());
+            test.setRoadmapId(request.getRoadmapId());
+            test.setRoadmapName(request.getRoadmapName().trim());
+            test.setTopicName(request.getTopicName().trim());
+            test.setWeekNumber(request.getWeekNumber());
+            test.setAttemptNumber(attemptNumber);
+            test.setStatus(TestStatus.PENDING);
+            test.setScore(0.0);
+            test.setCreatedAt(LocalDateTime.now());
 
-        Test saved = testRepository.save(test);
-        return toResponse(saved);
+            if (request.getQuestions() != null) {
+                for (QuestionCreateRequest questionRequest : request.getQuestions()) {
+                    if (questionRequest == null) {
+                        throw new IllegalArgumentException("Question data is required");
+                    }
+                    Question question = new Question();
+                    question.setQuestion(questionRequest.getQuestion());
+                    if (questionRequest.getOptions() != null) {
+                        question.setOptions(questionRequest.getOptions());
+                    }
+                    question.setCorrectAnswer(questionRequest.getCorrectAnswer());
+                    test.addQuestion(question);
+                }
+            }
+
+            Test saved = testRepository.save(test);
+            return toResponse(saved);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -79,6 +94,14 @@ public class TestService {
                 .stream()
                 .map(this::toSummary)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Test> getAllByUser(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User id is required");
+        }
+        return testRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +124,7 @@ public class TestService {
         if (test.getQuestions().isEmpty() && test.getStatus() != TestStatus.COMPLETED) {
             TestCreateRequest request = new TestCreateRequest();
             request.setUserId(test.getUserId());
+            request.setRoadmapId(test.getRoadmapId());
             request.setRoadmapName(test.getRoadmapName());
             request.setTopicName(test.getTopicName());
             request.setWeekNumber(test.getWeekNumber());
@@ -124,11 +148,11 @@ public class TestService {
     }
 
     @Transactional(readOnly = true)
-    public Map<Integer, TestStatus> getLatestStatusByWeek(Long userId, String roadmapName) {
-        if (userId == null || !StringUtils.hasText(roadmapName)) {
+    public Map<Integer, TestStatus> getLatestStatusByWeek(Long userId, Long roadmapId) {
+        if (userId == null || roadmapId == null) {
             return Map.of();
         }
-        List<Test> tests = testRepository.findByUserIdAndRoadmapNameOrderByCreatedAtDesc(userId, roadmapName);
+        List<Test> tests = testRepository.findByUserIdAndRoadmapIdOrderByCreatedAtDesc(userId, roadmapId);
         Map<Integer, TestStatus> statusByWeek = new HashMap<>();
         for (Test test : tests) {
             if (!statusByWeek.containsKey(test.getWeekNumber())) {
@@ -237,9 +261,13 @@ public class TestService {
         TestResponse response = new TestResponse();
         response.setId(test.getId());
         response.setUserId(test.getUserId());
+        response.setRoadmapId(test.getRoadmapId());
         response.setRoadmapName(test.getRoadmapName());
         response.setTopicName(test.getTopicName());
         response.setWeekNumber(test.getWeekNumber());
+        int attemptNumber = normalizeAttemptNumber(test);
+        response.setAttemptNumber(attemptNumber);
+        response.setTestNumber(test.getWeekNumber() + "." + attemptNumber);
         response.setStatus(test.getStatus());
         response.setScore(test.getScore());
         response.setCreatedAt(test.getCreatedAt());
@@ -264,9 +292,13 @@ public class TestService {
         TestSummaryResponse response = new TestSummaryResponse();
         response.setId(test.getId());
         response.setUserId(test.getUserId());
+        response.setRoadmapId(test.getRoadmapId());
         response.setRoadmapName(test.getRoadmapName());
         response.setTopicName(test.getTopicName());
         response.setWeekNumber(test.getWeekNumber());
+        int attemptNumber = normalizeAttemptNumber(test);
+        response.setAttemptNumber(attemptNumber);
+        response.setTestNumber(test.getWeekNumber() + "." + attemptNumber);
         response.setStatus(test.getStatus());
         response.setScore(test.getScore());
         response.setCreatedAt(test.getCreatedAt());
@@ -280,6 +312,9 @@ public class TestService {
         if (request.getUserId() == null) {
             throw new IllegalArgumentException("User id is required");
         }
+        if (request.getRoadmapId() == null) {
+            throw new IllegalArgumentException("Roadmap id is required");
+        }
         if (request.getRoadmapName() == null || request.getRoadmapName().isBlank()) {
             throw new IllegalArgumentException("Roadmap name is required");
         }
@@ -289,6 +324,14 @@ public class TestService {
         if (request.getWeekNumber() <= 0) {
             throw new IllegalArgumentException("Week number must be positive");
         }
+    }
+
+    private int normalizeAttemptNumber(Test test) {
+        Integer attempt = test.getAttemptNumber();
+        if (attempt == null || attempt <= 0) {
+            return 1;
+        }
+        return attempt;
     }
 
     private void addGeneratedQuestions(Test test, TestCreateRequest request) {

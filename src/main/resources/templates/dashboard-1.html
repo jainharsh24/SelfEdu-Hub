@@ -32,6 +32,7 @@
     </main>
 </div>
 
+<script th:src="@{/js/single-action.js}"></script>
 <script>
     const testPageRoot = document.querySelector('.page');
     const submitButton = document.getElementById('submitTest');
@@ -190,7 +191,8 @@
             }
             const test = await response.json();
             if (testMeta) {
-                testMeta.textContent = `${test.roadmapName} | ${test.topicName} | Week ${test.weekNumber}`;
+                const testNumber = test.testNumber ? `Test ${test.testNumber}` : `Week ${test.weekNumber}`;
+                testMeta.textContent = `${test.roadmapName} | ${test.topicName} | ${testNumber}`;
             }
             if (testStatus) {
                 testStatus.textContent = test.status || '';
@@ -213,6 +215,9 @@
 
     async function submitTest() {
         if (!testId || !submitButton) {
+            return;
+        }
+        if (window.SingleAction && !window.SingleAction.start(submitButton, 'Submitting...')) {
             return;
         }
         submitButton.disabled = true;
@@ -266,10 +271,9 @@
             if (errorLabel) {
                 errorLabel.textContent = err.message;
             }
-        } finally {
-        if (currentStatus !== 'COMPLETED') {
-            submitButton.disabled = false;
-        }
+            if (currentStatus !== 'COMPLETED' && window.SingleAction) {
+                window.SingleAction.finish(submitButton);
+            }
         }
     }
 

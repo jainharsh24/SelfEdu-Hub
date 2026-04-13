@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface RoadmapRepository extends JpaRepository<Roadmap, Long> {
     List<Roadmap> findByUserOrderByCreatedAtDesc(AppUser user);
     Optional<Roadmap> findByIdAndUser(Long id, AppUser user);
+    Optional<Roadmap> findFirstByUserAndInputSignature(AppUser user, String inputSignature);
 }

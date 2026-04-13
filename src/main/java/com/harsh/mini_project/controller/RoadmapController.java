@@ -12,6 +12,7 @@ import com.harsh.mini_project.service.WeekLinksService;
 import com.harsh.mini_project.service.YouTubeSearchService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,6 +20,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -53,12 +56,20 @@ public class RoadmapController {
     }
 
     @PostMapping("/roadmaps/start")
-    public String startRoadmap(HttpSession session, Principal principal) {
+    public String startRoadmap(HttpSession session, Principal principal, RedirectAttributes redirectAttributes) {
         RoadmapDraft draft = (RoadmapDraft) session.getAttribute("draftRoadmap");
         if (draft == null) {
             return "redirect:/";
         }
-        Roadmap saved = roadmapService.saveDraft(draft, userService.getByUsername(principal.getName()));
+        var user = userService.getByUsername(principal.getName());
+        var existing = roadmapService.findExistingRoadmapForDraft(draft, user);
+        if (existing.isPresent()) {
+            session.removeAttribute("draftRoadmap");
+            redirectAttributes.addFlashAttribute("infoMessage",
+                    "Same roadmap inputs already exist. Opened your existing roadmap.");
+            return "redirect:/roadmaps/" + existing.get().getId();
+        }
+        Roadmap saved = roadmapService.saveDraft(draft, user);
         session.removeAttribute("draftRoadmap");
         return "redirect:/roadmaps/" + saved.getId();
     }
@@ -69,7 +80,7 @@ public class RoadmapController {
         Roadmap roadmap = roadmapService.getRoadmap(id, user);
         model.addAttribute("roadmap", roadmap);
         model.addAttribute("userId", user.getId());
-        model.addAttribute("testStatusByWeek", testService.getLatestStatusByWeek(user.getId(), roadmap.getFieldName()));
+        model.addAttribute("testStatusByWeek", testService.getLatestStatusByWeek(user.getId(), roadmap.getId()));
         model.addAttribute("weekGroups", groupByWeek(roadmap.getTopics()));
         model.addAttribute("weekLinksByWeek", weekLinksService.getWeekLinksByRoadmap(roadmap));
         model.addAttribute("weekExplanations", weekExplanationService.getExplanationsByRoadmap(roadmap));
@@ -94,6 +105,9 @@ public class RoadmapController {
     @PostMapping("/roadmaps/{id}/weeks/{weekNumber}/links")
     public String fetchWeekLinks(@PathVariable Long id, @PathVariable int weekNumber, Model model, Principal principal) {
         Roadmap roadmap = roadmapService.getRoadmap(id, userService.getByUsername(principal.getName()));
+        if (weekLinksService.getWeekLinks(roadmap, weekNumber).isPresent()) {
+            return "redirect:/roadmaps/" + id;
+        }
         Map<String, String> subtopicQueries = new LinkedHashMap<>();
         for (Topic topic : roadmap.getTopics()) {
             if (topic.getWeekNumber() == weekNumber) {
@@ -132,6 +146,20 @@ public class RoadmapController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=roadmap-" + id + ".pdf")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
+    }
+
+    @PostMapping("/roadmaps/{id}/topics/{topicId}/track-link")
+    @ResponseBody
+    public ResponseEntity<Void> trackLinkClick(@PathVariable Long id, @PathVariable Long topicId, Principal principal) {
+        roadmapService.recordLinkClick(id, topicId, userService.getByUsername(principal.getName()));
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PostMapping("/roadmaps/{id}/weeks/{weekNumber}/track-explanation")
+    @ResponseBody
+    public ResponseEntity<Void> trackExplanationView(@PathVariable Long id, @PathVariable int weekNumber, Principal principal) {
+        roadmapService.recordExplanationView(id, weekNumber, userService.getByUsername(principal.getName()));
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
     private List<WeekGroup> groupByWeek(List<Topic> topics) {

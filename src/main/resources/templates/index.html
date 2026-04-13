@@ -1,75 +1,104 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
 <head>
     <meta charset="UTF-8">
-    <title>Self-Study Planner</title>
+    <title>SelfEdu</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
 <div class="page">
     <div th:replace="~{fragments/nav :: nav}"></div>
-    <main class="container container-tight container-home">
-        <section class="hero">
-            <h1>Roadmap Generation Launchpad</h1>
-            <p class="tagline">Design a focused learning plan and Start Learning...</p>
+    <main class="container landing-page">
+        <section class="landing-hero theme-hero home-hero">
+            <div class="landing-copy">
+                <p class="landing-kicker">AI Guided Learning</p>
+                <h1>AI Powered Self Learning Platform</h1>
+                <p class="landing-text">
+                    Plan your learning journey with structured roadmaps, guided weekly study, and measurable progress.
+                </p>
+                <div class="landing-actions" sec:authorize="!isAuthenticated()">
+                    <a class="primary-btn" th:href="@{/login}">Start Learning</a>
+                    <a class="ghost-btn" th:href="@{/register}">Create Account</a>
+                </div>
+                <div class="landing-actions" sec:authorize="isAuthenticated()">
+                    <a class="primary-btn" th:href="@{/dashboard}">Start Learning</a>
+                    <a class="ghost-btn" th:href="@{/my-learning}">See Roadmaps</a>
+                </div>
+            </div>
+            <div class="landing-highlight theme-hero-panel home-hero-panel">
+                <p class="landing-panel-label theme-hero-panel-label">What you get</p>
+                <ul class="landing-checklist">
+                    <li>Structured learning roadmap</li>
+                    <li>Weekly study guidance</li>
+                    <li>Topic-wise testing and progress review</li>
+                </ul>
+            </div>
         </section>
 
-        <section class="card">
-            <h2>Build a Roadmap</h2>
-            <form th:action="@{/generate}" th:object="${roadmapRequest}" method="post" class="form-grid">
-                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <div class="form-field">
-                    <label for="field">Field</label>
-                    <input id="field" type="text" th:field="*{field}" placeholder="Cybersecurity, Web Dev, Data Science"
-                           list="subjectSuggestions">
-                    <datalist id="subjectSuggestions">
-                        <option th:each="subject : ${subjectSuggestions}" th:value="${subject}"></option>
-                    </datalist>
-                    <span class="error" th:if="${#fields.hasErrors('field')}" th:errors="*{field}"></span>
-                </div>
-                <div class="form-field">
-                    <label for="level">Level</label>
-                    <select id="level" th:field="*{level}">
-                        <option th:each="lvl : ${levels}" th:value="${lvl}" th:text="${lvl}"></option>
-                    </select>
-                    <span class="error" th:if="${#fields.hasErrors('level')}" th:errors="*{level}"></span>
-                </div>
-                <div class="form-field">
-                    <label for="durationMonths">Duration (months)</label>
-                    <input id="durationMonths" type="number" min="1" max="24" th:field="*{durationMonths}" placeholder="3 or 6">
-                    <span class="error" th:if="${#fields.hasErrors('durationMonths')}" th:errors="*{durationMonths}"></span>
-                </div>
-                <div class="form-field form-field-full">
-                    <label for="syllabusTopics">Syllabus topics (comma-separated)</label>
-                    <textarea id="syllabusTopics" rows="4" th:field="*{syllabusTopics}"
-                              placeholder="Topic 1, Topic 2, Topic 3, Topic 4"></textarea>
-                    <span class="helper">Limit 1000-1500 words. These topics will be included in the roadmap.</span>
-                    <span class="error" th:if="${#fields.hasErrors('syllabusTopics')}" th:errors="*{syllabusTopics}"></span>
-                </div>
-                <button class="primary-btn" type="submit">Generate Roadmap</button>
-            </form>
+        <section class="card landing-section">
+            <div class="section-heading">
+                <p class="landing-kicker">Features</p>
+                <h2>Everything a learner needs in one platform</h2>
+            </div>
+            <div class="landing-feature-grid">
+                <article class="landing-feature-card">
+                    <h3>Generate structured roadmap</h3>
+                    <p>Create a focused learning path based on your goal and timeline.</p>
+                </article>
+                <article class="landing-feature-card">
+                    <h3>YouTube learning links</h3>
+                    <p>Access curated video resources for each study week and topic.</p>
+                </article>
+                <article class="landing-feature-card">
+                    <h3>Weekly explanations</h3>
+                    <p>Review AI-generated explanations that simplify what to study.</p>
+                </article>
+                <article class="landing-feature-card">
+                    <h3>MCQ tests</h3>
+                    <p>Validate understanding with topic-wise tests and review results.</p>
+                </article>
+                <article class="landing-feature-card">
+                    <h3>Progress tracking</h3>
+                    <p>Monitor completion, scores, and learning consistency over time.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="card landing-section">
+            <div class="section-heading">
+                <p class="landing-kicker">How It Works</p>
+                <h2>From goal to measurable progress in three steps</h2>
+            </div>
+            <div class="landing-steps">
+                <article class="landing-step">
+                    <span class="landing-step-number">01</span>
+                    <h3>Enter goal</h3>
+                    <p>Choose what you want to learn and define your target path.</p>
+                </article>
+                <article class="landing-step">
+                    <span class="landing-step-number">02</span>
+                    <h3>Get roadmap</h3>
+                    <p>Receive a structured weekly roadmap with study direction and resources.</p>
+                </article>
+                <article class="landing-step">
+                    <span class="landing-step-number">03</span>
+                    <h3>Learn + test</h3>
+                    <p>Study each week, attempt MCQs, and track your performance growth.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="landing-cta card" sec:authorize="!isAuthenticated()">
+            <div>
+                <p class="landing-kicker">Ready To Start</p>
+                <h2>Begin your learning journey with a proper system.</h2>
+            </div>
+            <div class="landing-actions">
+                <a class="primary-btn" th:href="@{/login}">Login</a>
+                <a class="ghost-btn" th:href="@{/register}">Register</a>
+            </div>
         </section>
     </main>
 </div>
-<script>
-    const form = document.querySelector('form');
-    form?.addEventListener('submit', () => {
-        const topicsInput = document.getElementById('syllabusTopics');
-        const durationInput = document.getElementById('durationMonths');
-        if (!topicsInput || !durationInput) {
-            return;
-        }
-        const raw = topicsInput.value || '';
-        const topics = raw.split(',').map(t => t.trim()).filter(Boolean);
-        const months = parseInt(durationInput.value || '0', 10);
-        const weeks = Math.max(4, months * 4);
-        if (topics.length > 0 && weeks > 0) {
-            const perWeek = Math.ceil(topics.length / weeks);
-            if (perWeek > 6) {
-                alert('Notice: Your syllabus is large. Some weeks may include more than 6 topics.');
-            }
-        }
-    });
-</script>
 </body>
 </html>

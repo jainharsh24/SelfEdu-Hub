@@ -35,6 +35,12 @@ public class WeekLinksService {
         return result;
     }
 
+    @Transactional(readOnly = true)
+    public Optional<Map<String, String>> getWeekLinks(Roadmap roadmap, int weekNumber) {
+        return weekLinksRepository.findByRoadmapIdAndWeekNumber(roadmap.getId(), weekNumber)
+                .map(item -> parseLinks(item.getLinksJson()));
+    }
+
     public void saveWeekLinks(Roadmap roadmap, int weekNumber, Map<String, String> links) {
         String json = toJson(links);
         Optional<WeekLinks> existing = weekLinksRepository.findByRoadmapIdAndWeekNumber(roadmap.getId(), weekNumber);

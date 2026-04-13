@@ -8,10 +8,11 @@
     <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
 <body>
-<div class="page" th:attr="data-user-id=${userId}, data-roadmap-name=${roadmap.fieldName}">
+<div class="page" th:attr="data-user-id=${userId}, data-roadmap-id=${roadmap.id}, data-roadmap-name=${roadmap.fieldName}">
     <div th:replace="~{fragments/nav :: nav}"></div>
     <main class="container">
         <section class="card">
+            <p class="muted" th:if="${infoMessage}" th:text="${infoMessage}"></p>
             <div class="detail-header">
                 <div>
                     <h2 th:text="${roadmap.fieldName}"></h2>
@@ -19,7 +20,7 @@
                     <p class="muted">Level: <span th:text="${roadmap.level}"></span> | Duration: <span th:text="${roadmap.durationMonths}"></span> months</p>
                 </div>
                 <div class="detail-actions">
-                    <a class="ghost-btn" th:href="@{/dashboard}">Back to Learning</a>
+            <a class="ghost-btn" th:href="@{/my-learning}">Back to Learning</a>
                     <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id} + '/export'}">Export PDF</a>
                 </div>
             </div>
@@ -45,19 +46,23 @@
                         </div>
                         <div class="week-actions">
                             <form class="week-link-form" th:if="${weekLinks == null}"
-                                  th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/links'}" method="post">
+                                   th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/links'}" method="post">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="ghost-btn" type="submit">Link</button>
+                                <button class="ghost-btn" type="submit" data-pending-text="Loading...">Link</button>
                             </form>
                             <form class="week-explain-form" th:if="${weekExplain == null}"
-                                  th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/explain'}" method="post">
+                                   th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/explain'}" method="post">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="ghost-btn" type="submit">Explain</button>
+                                <button class="ghost-btn" type="submit" data-pending-text="Generating...">Explain</button>
                             </form>
                             <button class="ghost-btn" type="button"
                                     th:if="${weekExplain != null}"
                                     th:attr="data-explain-week=${weekGroup.weekNumber}"
                                     onclick="openWeekPanel(this)">Open</button>
+                            <button class="ghost-btn" type="button"
+                                    th:attr="data-retest-week=${weekGroup.weekNumber}"
+                                    data-pending-text="Creating..."
+                                    onclick="startRetest(this)">Retest</button>
                         </div>
                     </div>
                     <div class="topic-item" th:each="topic : ${weekGroup.topics}" th:classappend="${topic.completed} ? 'completed'">
@@ -71,13 +76,21 @@
                                     </div>
                                     <a class="link"
                                        th:if="${weekLinks != null and weekLinks.get(sub) != null}"
-                                       th:href="${weekLinks.get(sub)}" target="_blank">Video</a>
+                                       th:href="${weekLinks.get(sub)}"
+                                       th:attr="data-topic-id=${topic.id}"
+                                       target="_blank">Video</a>
                                 </li>
                             </ul>
                         </div>
-                        <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/topics/' + ${topic.id} + '/toggle'}" method="post">
+                        <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/topics/' + ${topic.id} + '/toggle'}"
+                              method="post"
+                              th:attr="onsubmit=${topic.completed} ? null : 'return confirmTopicCompletion();'">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <button class="toggle-btn" type="submit" th:text="${topic.completed} ? 'Mark Incomplete' : 'Mark Completed'"></button>
+                            <button class="toggle-btn"
+                                    type="submit"
+                                    data-pending-text="Saving..."
+                                    th:disabled="${topic.completed}"
+                                    th:text="${topic.completed} ? 'Completed' : 'Mark Complete'">Mark Complete</button>
                         </form>
                     </div>
                 </div>
@@ -109,6 +122,7 @@
     <div class="week-panel-content" id="weekPanelContent"></div>
 </aside>
 
+<script th:src="@{/js/single-action.js}"></script>
 <script th:inline="javascript">
     const weekExplanations = /*[[${weekExplanations}]]*/ {};
     const overlay = document.getElementById('weekPanelOverlay');
@@ -117,6 +131,7 @@
     const panelContent = document.getElementById('weekPanelContent');
     const pageRoot = document.querySelector('.page');
     const userId = pageRoot ? pageRoot.dataset.userId : null;
+    const roadmapId = pageRoot ? pageRoot.dataset.roadmapId : null;
     const roadmapName = pageRoot ? pageRoot.dataset.roadmapName : null;
     const testModal = document.getElementById('testModal');
     const testModalOverlay = document.getElementById('testModalOverlay');
@@ -130,6 +145,34 @@
     const weekTopicMap = new Map();
     const weekCards = document.querySelectorAll('.week-card[data-week-number]');
     let testRequestInFlight = false;
+    const trackedExplanationViews = new Set();
+    document.querySelectorAll('form[method="post"]').forEach(form => {
+        form.setAttribute('data-single-submit', '');
+    });
+
+    function confirmTopicCompletion() {
+        return window.confirm('Are you sure want to mark as complete, it will not undo, make sure you understand the weekly concept');
+    }
+
+    async function postTrackingEvent(url) {
+        const headers = {};
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader] = csrfToken;
+        }
+        await fetch(url, {
+            method: 'POST',
+            headers,
+            credentials: 'same-origin'
+        });
+    }
+
+    function trackExplanationView(week) {
+        if (!week || trackedExplanationViews.has(String(week))) {
+            return;
+        }
+        trackedExplanationViews.add(String(week));
+        postTrackingEvent(`/roadmaps/${roadmapId}/weeks/${week}/track-explanation`).catch(() => {});
+    }
 
     function openWeekPanel(button) {
         const week = button.getAttribute('data-explain-week');
@@ -142,6 +185,7 @@
         }
         panelTitle.textContent = `Week ${week} Overview`;
         panelContent.textContent = text;
+        trackExplanationView(week);
         overlay.classList.add('is-active');
         panel.classList.add('is-active');
     }
@@ -156,9 +200,20 @@
     if (openWeek && weekExplanations[openWeek]) {
         panelTitle.textContent = `Week ${openWeek} Overview`;
         panelContent.textContent = weekExplanations[openWeek];
+        trackExplanationView(openWeek);
         overlay.classList.add('is-active');
         panel.classList.add('is-active');
     }
+
+    document.querySelectorAll('a.link[data-topic-id]').forEach(anchor => {
+        anchor.addEventListener('click', () => {
+            const topicId = anchor.getAttribute('data-topic-id');
+            if (!topicId || !roadmapId) {
+                return;
+            }
+            postTrackingEvent(`/roadmaps/${roadmapId}/topics/${topicId}/track-link`).catch(() => {});
+        });
+    });
 
     if (weekCards.length) {
         weekCards.forEach(card => {
@@ -199,11 +254,11 @@
         }
     }
 
-    async function createTestForWeek(weekNumber) {
+    async function createTestForWeek(weekNumber, isRetest = false) {
         if (testRequestInFlight) {
             return null;
         }
-        if (!userId || !roadmapName) {
+        if (!userId || !roadmapId || !roadmapName) {
             throw new Error('Missing user or roadmap information.');
         }
         testRequestInFlight = true;
@@ -211,9 +266,11 @@
         const topicLabel = topics.length > 0 ? topics.join(', ') : `Week ${weekNumber}`;
         const body = {
             userId: Number(userId),
+            roadmapId: Number(roadmapId),
             roadmapName: roadmapName,
             topicName: topicLabel,
-            weekNumber: Number(weekNumber)
+            weekNumber: Number(weekNumber),
+            retest: isRetest
         };
 
         const headers = {
@@ -228,8 +285,9 @@
             headers,
             credentials: 'same-origin',
             body: JSON.stringify(body)
+        }).finally(() => {
+            testRequestInFlight = false;
         });
-        testRequestInFlight = false;
         if (!response.ok) {
             const payload = await response.json().catch(() => ({}));
             const message = payload?.error || 'Failed to create test.';
@@ -238,13 +296,57 @@
         return response.json();
     }
 
+    async function startRetest(button) {
+        if (!button || testRequestInFlight) {
+            return;
+        }
+        if (window.SingleAction && !window.SingleAction.start(button, 'Creating...')) {
+            return;
+        }
+        const weekNumber = button.getAttribute('data-retest-week');
+        if (!weekNumber) {
+            if (window.SingleAction) {
+                window.SingleAction.finish(button);
+            }
+            return;
+        }
+        const confirmRetest = window.confirm(`Start a retest for Week ${weekNumber}? A new test will be created only if no pending test exists.`);
+        if (!confirmRetest) {
+            if (window.SingleAction) {
+                window.SingleAction.finish(button);
+            }
+            return;
+        }
+        try {
+            const result = await createTestForWeek(weekNumber, true);
+            if (result && result.id) {
+                if (result.status === 'COMPLETED') {
+                    window.location.href = `/dashboard-3?testId=${result.id}`;
+                } else {
+                    window.location.href = `/dashboard-1?testId=${result.id}`;
+                }
+            } else {
+                window.alert('Failed to create retest.');
+            }
+        } catch (err) {
+            window.alert(err.message);
+            if (window.SingleAction) {
+                window.SingleAction.finish(button);
+            }
+        }
+    }
+
     function attachModalHandlers() {
         if (!testModalYes || !testModalNo || !testModalClose || !testModalOverlay) {
             return;
         }
 
-        const handleNo = async () => {
+        const handleNo = async (event) => {
             if (!testModal || testRequestInFlight) {
+                return;
+            }
+            const sourceButton = event?.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+            if (sourceButton && window.SingleAction && !window.SingleAction.start(sourceButton, 'Creating...')) {
                 return;
             }
             const weekNumber = testModal.dataset.weekNumber;
@@ -254,11 +356,18 @@
                 clearWeekCompletedParam();
             } catch (err) {
                 testModalMessage.textContent = err.message;
+                if (sourceButton && window.SingleAction) {
+                    window.SingleAction.finish(sourceButton);
+                }
             }
         };
 
-        const handleYes = async () => {
+        const handleYes = async (event) => {
             if (!testModal || testRequestInFlight) {
+                return;
+            }
+            const sourceButton = event?.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+            if (sourceButton && window.SingleAction && !window.SingleAction.start(sourceButton, 'Creating...')) {
                 return;
             }
             const weekNumber = testModal.dataset.weekNumber;
@@ -269,9 +378,15 @@
                     window.location.href = `/dashboard-1?testId=${result.id}`;
                 } else {
                     testModalMessage.textContent = 'Test created but no id returned.';
+                    if (sourceButton && window.SingleAction) {
+                        window.SingleAction.finish(sourceButton);
+                    }
                 }
             } catch (err) {
                 testModalMessage.textContent = err.message;
+                if (sourceButton && window.SingleAction) {
+                    window.SingleAction.finish(sourceButton);
+                }
             }
         };
 

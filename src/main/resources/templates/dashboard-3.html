@@ -129,7 +129,8 @@
             }
             const test = await response.json();
             if (reviewMeta) {
-                reviewMeta.textContent = `${test.roadmapName} | ${test.topicName} | Week ${test.weekNumber}`;
+                const testNumber = test.testNumber ? `Test ${test.testNumber}` : `Week ${test.weekNumber}`;
+                reviewMeta.textContent = `${test.roadmapName} | ${test.topicName} | ${testNumber}`;
             }
             if (reviewScore) {
                 reviewScore.textContent = test.score ?? 0;
