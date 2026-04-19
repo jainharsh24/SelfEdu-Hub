@@ -4,18 +4,41 @@
 <nav class="nav" th:fragment="nav">
     <div class="brand">SelfEdu</div>
     <div class="nav-links">
-        <a th:href="@{/}">Home</a>
-        <a th:href="@{/dashboard}" sec:authorize="isAuthenticated()">Dashboard</a>
-        <a th:href="@{/my-learning}" sec:authorize="isAuthenticated()">My Learning</a>
-        <a th:href="@{/generate-roadmap}" sec:authorize="isAuthenticated()">Generate Roadmap</a>
-        <a th:href="@{/dashboard-2}" sec:authorize="isAuthenticated()">Tests</a>
-        <a th:href="@{/dashboard-main}" sec:authorize="isAuthenticated()">Analytics</a>
-        <a th:href="@{/profile}" sec:authorize="isAuthenticated()">Profile</a>
+        <a th:href="@{/}" data-nav-link="home">Home</a>
+        <a th:href="@{/dashboard}" data-nav-link="dashboard" sec:authorize="isAuthenticated()">Dashboard</a>
+        <a th:href="@{/my-learning}" data-nav-link="my-learning" sec:authorize="isAuthenticated()">My Learning</a>
+        <a th:href="@{/generate-roadmap}" data-nav-link="generate-roadmap" sec:authorize="isAuthenticated()">Generate Roadmap</a>
+        <a th:href="@{/dashboard-2}" data-nav-link="tests" sec:authorize="isAuthenticated()">Tests</a>
+        <a th:href="@{/dashboard-main}" data-nav-link="analytics" sec:authorize="isAuthenticated()">Analytics</a>
+        <a th:href="@{/profile}" data-nav-link="profile" sec:authorize="isAuthenticated()">Profile</a>
         <div class="nav-auth" sec:authorize="!isAuthenticated()">
             <a th:href="@{/login}">Login</a>
             <a th:href="@{/register}">Register</a>
         </div>
     </div>
 </nav>
+<script>
+    (function () {
+        const path = window.location.pathname;
+        let section = 'home';
+        if (path === '/dashboard' || path.startsWith('/dashboard-1') || path.startsWith('/dashboard-3')) {
+            section = 'dashboard';
+        } else if (path.startsWith('/my-learning') || path.startsWith('/roadmaps/')) {
+            section = 'my-learning';
+        } else if (path.startsWith('/generate-roadmap') || path.startsWith('/roadmap-preview')) {
+            section = 'generate-roadmap';
+        } else if (path.startsWith('/dashboard-2') || path.startsWith('/tests/')) {
+            section = 'tests';
+        } else if (path.startsWith('/dashboard-main')) {
+            section = 'analytics';
+        } else if (path.startsWith('/profile')) {
+            section = 'profile';
+        }
+        const activeLink = document.querySelector(`.nav-links a[data-nav-link="${section}"]`);
+        if (activeLink) {
+            activeLink.classList.add('is-active');
+        }
+    })();
+</script>
 </body>
 </html>

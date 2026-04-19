@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Profile</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="page">
@@ -24,49 +23,12 @@
                     <strong th:text="${profile.totalTests}">0</strong>
                     <span>Total tests across all roadmaps</span>
                 </div>
+                <p class="theme-hero-panel-note">Performance trends now live in the Analytics Dashboard.</p>
+                <a class="ghost-btn dashboard-hero-ghost" th:href="@{/dashboard-main}">Open Analytics</a>
             </aside>
         </section>
 
         <div class="auth-message" th:if="${passwordSuccess}" th:text="${passwordSuccess}"></div>
-
-        <section class="profile-stats-grid">
-            <article class="dashboard-summary-card">
-                <span>Total Tests</span>
-                <strong th:text="${profile.totalTests}">0</strong>
-            </article>
-            <article class="dashboard-summary-card">
-                <span>Average Score</span>
-                <strong><span th:text="${#numbers.formatDecimal(profile.avgScore, 1, 2)}">0.00</span>%</strong>
-            </article>
-            <article class="dashboard-summary-card">
-                <span>Completed Topics</span>
-                <strong th:text="${profile.completedTopics}">0</strong>
-            </article>
-        </section>
-
-        <section class="profile-chart-grid">
-            <article class="card profile-chart-card">
-                <div class="dashboard-section-header">
-                    <div>
-                        <p class="dashboard-kicker">Score Trend</p>
-                        <h2>Performance over time</h2>
-                    </div>
-                </div>
-                <div class="profile-chart-empty" th:if="${#lists.isEmpty(profile.scoreTrend)}">No completed tests yet.</div>
-                <canvas id="scoreTrendChart" th:if="${!#lists.isEmpty(profile.scoreTrend)}"></canvas>
-            </article>
-
-            <article class="card profile-chart-card">
-                <div class="dashboard-section-header">
-                    <div>
-                        <p class="dashboard-kicker">Weekly Activity</p>
-                        <h2>Completed topics by roadmap week</h2>
-                    </div>
-                </div>
-                <div class="profile-chart-empty" th:if="${#lists.isEmpty(profile.weeklyActivity)}">No completed topics yet.</div>
-                <canvas id="weeklyActivityChart" th:if="${!#lists.isEmpty(profile.weeklyActivity)}"></canvas>
-            </article>
-        </section>
 
         <section class="card">
             <div class="dashboard-section-header">
@@ -81,8 +43,8 @@
                     <strong><span th:text="${#numbers.formatDecimal(profile.bestScore, 1, 2)}">0.00</span>%</strong>
                 </article>
                 <article class="profile-achievement-card">
-                    <span>Total Tests Completed</span>
-                    <strong th:text="${profile.totalTestsCompleted}">0</strong>
+                    <span>Milestones Completed</span>
+                    <strong th:text="${profile.milestonesCompleted}">0</strong>
                 </article>
             </div>
         </section>
@@ -104,57 +66,5 @@
         </section>
     </main>
 </div>
-
-<script th:inline="javascript">
-    const scoreTrendData = /*[[${profile.scoreTrend}]]*/ [];
-    const weeklyActivityData = /*[[${profile.weeklyActivity}]]*/ [];
-
-    const scoreTrendCanvas = document.getElementById('scoreTrendChart');
-    if (scoreTrendCanvas && scoreTrendData.length) {
-        new Chart(scoreTrendCanvas, {
-            type: 'line',
-            data: {
-                labels: scoreTrendData.map(item => item.label),
-                datasets: [{
-                    label: 'Score',
-                    data: scoreTrendData.map(item => item.value),
-                    borderColor: '#2f6fa3',
-                    backgroundColor: 'rgba(47, 111, 163, 0.12)',
-                    fill: true,
-                    tension: 0.32
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        min: 0,
-                        max: 100
-                    }
-                }
-            }
-        });
-    }
-
-    const weeklyActivityCanvas = document.getElementById('weeklyActivityChart');
-    if (weeklyActivityCanvas && weeklyActivityData.length) {
-        new Chart(weeklyActivityCanvas, {
-            type: 'bar',
-            data: {
-                labels: weeklyActivityData.map(item => item.label),
-                datasets: [{
-                    label: 'Completed Topics',
-                    data: weeklyActivityData.map(item => item.value),
-                    backgroundColor: '#2f6fa3'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false
-            }
-        });
-    }
-</script>
 </body>
 </html>

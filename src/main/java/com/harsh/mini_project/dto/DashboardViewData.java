@@ -6,26 +6,25 @@ import java.util.List;
 
 public class DashboardViewData {
     private final List<Roadmap> activeRoadmaps;
-    private final List<DashboardRecentTestItem> recentTests;
     private final long totalRoadmaps;
     private final double avgScore;
+    private final String nextStepLabel;
+    private final Recommendation recommendation;
 
     public DashboardViewData(List<Roadmap> activeRoadmaps,
-                             List<DashboardRecentTestItem> recentTests,
                              long totalRoadmaps,
-                             double avgScore) {
+                             double avgScore,
+                             String nextStepLabel,
+                             Recommendation recommendation) {
         this.activeRoadmaps = activeRoadmaps;
-        this.recentTests = recentTests;
         this.totalRoadmaps = totalRoadmaps;
         this.avgScore = avgScore;
+        this.nextStepLabel = nextStepLabel;
+        this.recommendation = recommendation;
     }
 
     public List<Roadmap> getActiveRoadmaps() {
         return activeRoadmaps;
-    }
-
-    public List<DashboardRecentTestItem> getRecentTests() {
-        return recentTests;
     }
 
     public long getTotalRoadmaps() {
@@ -34,5 +33,13 @@ public class DashboardViewData {
 
     public double getAvgScore() {
         return avgScore;
+    }
+
+    public String getNextStepLabel() {
+        return nextStepLabel;
+    }
+
+    public Recommendation getRecommendation() {
+        return recommendation;
     }
 }

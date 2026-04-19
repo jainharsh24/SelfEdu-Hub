@@ -1,5 +1,8 @@
 package com.harsh.mini_project.service;
 
+import com.harsh.mini_project.dto.DashboardRecentTestItem;
+import com.harsh.mini_project.dto.GlobalAnalyticsResponse;
+import com.harsh.mini_project.dto.ProfileChartPoint;
 import com.harsh.mini_project.dto.RoadmapAnalyticsResponse;
 import com.harsh.mini_project.model.AppUser;
 import com.harsh.mini_project.model.Roadmap;
@@ -12,12 +15,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class DashboardAnalyticsService {
+    private static final DateTimeFormatter SCORE_TREND_FORMAT = DateTimeFormatter.ofPattern("dd MMM");
+
     private final RoadmapRepository roadmapRepository;
     private final TestRepository testRepository;
 
@@ -33,6 +40,106 @@ public class DashboardAnalyticsService {
                 .map(this::toAnalytics)
                 .sorted(Comparator.comparingDouble(RoadmapAnalyticsResponse::getProgressPercent).reversed())
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GlobalAnalyticsResponse getGlobalAnalyticsByUser(AppUser user) {
+        List<RoadmapAnalyticsResponse> roadmapAnalytics = getAnalyticsByUser(user);
+        List<Test> allTests = testRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        List<Test> completedTests = allTests.stream()
+                .filter(test -> test.getStatus() == TestStatus.COMPLETED)
+                .toList();
+        List<Roadmap> allRoadmaps = roadmapRepository.findByUserOrderByCreatedAtDesc(user);
+        List<Topic> allTopics = allRoadmaps.stream()
+                .flatMap(roadmap -> roadmap.getTopics().stream())
+                .toList();
+
+        List<DashboardRecentTestItem> recentTests = completedTests.stream()
+                .limit(3)
+                .map(test -> new DashboardRecentTestItem(
+                        test.getRoadmapId(),
+                        test.getRoadmapName(),
+                        test.getTopicName(),
+                        test.getWeekNumber(),
+                        round(test.getScore())
+                ))
+                .toList();
+
+        List<ProfileChartPoint> scoreTrend = completedTests.stream()
+                .sorted(Comparator.comparing(Test::getCreatedAt))
+                .map(test -> new ProfileChartPoint(
+                        test.getCreatedAt().format(SCORE_TREND_FORMAT),
+                        round(test.getScore())
+                ))
+                .toList();
+
+        Map<Integer, Long> completedTopicsByWeek = allTopics.stream()
+                .filter(Topic::isCompleted)
+                .collect(Collectors.groupingBy(Topic::getWeekNumber, Collectors.counting()));
+
+        List<ProfileChartPoint> weeklyActivity = completedTopicsByWeek.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> new ProfileChartPoint("Week " + entry.getKey(), entry.getValue()))
+                .toList();
+
+        List<ProfileChartPoint> overallProgressTrend = allRoadmaps.stream()
+                .sorted(Comparator.comparing(Roadmap::getCreatedAt))
+                .map(roadmap -> new ProfileChartPoint(
+                        roadmap.getCreatedAt().format(SCORE_TREND_FORMAT),
+                        round(roadmap.getProgressPercent())
+                ))
+                .toList();
+
+        double avgScore = round(completedTests.stream()
+                .mapToDouble(Test::getScore)
+                .average()
+                .orElse(0.0));
+        double bestScore = round(completedTests.stream()
+                .mapToDouble(Test::getScore)
+                .max()
+                .orElse(0.0));
+
+        Map<String, Double> roadmapAvgScore = completedTests.stream()
+                .collect(Collectors.groupingBy(
+                        Test::getRoadmapName,
+                        LinkedHashMap::new,
+                        Collectors.averagingDouble(Test::getScore)
+                ));
+        Map<String, Double> topicAvgScore = completedTests.stream()
+                .collect(Collectors.groupingBy(
+                        Test::getTopicName,
+                        LinkedHashMap::new,
+                        Collectors.averagingDouble(Test::getScore)
+                ));
+
+        Map.Entry<String, Double> bestRoadmap = roadmapAvgScore.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
+        Map.Entry<String, Double> strongTopic = topicAvgScore.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .orElse(null);
+        Map.Entry<String, Double> weakTopic = topicAvgScore.entrySet().stream()
+                .min(Map.Entry.comparingByValue())
+                .orElse(null);
+
+        GlobalAnalyticsResponse response = new GlobalAnalyticsResponse();
+        response.setTotalRoadmaps(roadmapAnalytics.size());
+        response.setTotalTests(allTests.size());
+        response.setWeeksCompleted(roadmapAnalytics.stream().mapToLong(RoadmapAnalyticsResponse::getCompletedWeeks).sum());
+        response.setAverageScore(avgScore);
+        response.setBestScore(bestScore);
+        response.setScoreTrend(scoreTrend);
+        response.setWeeklyActivity(weeklyActivity);
+        response.setOverallProgressTrend(overallProgressTrend);
+        response.setRecentTests(recentTests);
+        response.setRoadmaps(roadmapAnalytics);
+        response.setBestRoadmapName(bestRoadmap == null ? "N/A" : bestRoadmap.getKey());
+        response.setBestRoadmapScore(bestRoadmap == null ? 0.0 : round(bestRoadmap.getValue()));
+        response.setStrongTopicName(strongTopic == null ? "N/A" : strongTopic.getKey());
+        response.setStrongTopicScore(strongTopic == null ? 0.0 : round(strongTopic.getValue()));
+        response.setWeakTopicName(weakTopic == null ? "N/A" : weakTopic.getKey());
+        response.setWeakTopicScore(weakTopic == null ? 0.0 : round(weakTopic.getValue()));
+        return response;
     }
 
     private RoadmapAnalyticsResponse toAnalytics(Roadmap roadmap) {

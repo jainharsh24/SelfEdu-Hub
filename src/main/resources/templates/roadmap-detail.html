@@ -10,92 +10,118 @@
 <body>
 <div class="page" th:attr="data-user-id=${userId}, data-roadmap-id=${roadmap.id}, data-roadmap-name=${roadmap.fieldName}">
     <div th:replace="~{fragments/nav :: nav}"></div>
-    <main class="container">
-        <section class="card">
-            <p class="muted" th:if="${infoMessage}" th:text="${infoMessage}"></p>
-            <div class="detail-header">
-                <div>
-                    <h2 th:text="${roadmap.fieldName}"></h2>
-                    <p class="tagline">Focus on the next two weeks and build steady momentum.</p>
-                    <p class="muted">Level: <span th:text="${roadmap.level}"></span> | Duration: <span th:text="${roadmap.durationMonths}"></span> months</p>
-                </div>
-                <div class="detail-actions">
-            <a class="ghost-btn" th:href="@{/my-learning}">Back to Learning</a>
-                    <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id} + '/export'}">Export PDF</a>
-                </div>
-            </div>
-            <div class="progress">
-                <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
-            </div>
-            <p class="progress-text"><span th:text="${roadmap.progressPercent}"></span>% complete</p>
-        </section>
+    <main class="container roadmap-detail-page">
+        <div class="roadmap-detail-layout">
+            <div class="roadmap-detail-main">
+                <section class="card">
+                    <p class="muted" th:if="${infoMessage}" th:text="${infoMessage}"></p>
+                    <div class="detail-header">
+                        <div>
+                            <h2 th:text="${roadmap.fieldName}"></h2>
+                            <p class="tagline">Focus on the next two weeks and build steady momentum.</p>
+                            <p class="muted">Level: <span th:text="${roadmap.level}"></span> | Duration: <span th:text="${roadmap.durationMonths}"></span> months</p>
+                        </div>
+                        <div class="detail-actions">
+                            <a class="ghost-btn" th:href="@{/my-learning}">Back to Learning</a>
+                            <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id} + '/export'}">Export PDF</a>
+                        </div>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
+                    </div>
+                    <p class="progress-text"><span th:text="${roadmap.progressPercent}"></span>% complete</p>
+                </section>
 
-        <section class="card">
-            <h3>Weekly Breakdown</h3>
-            <div class="week-list">
-                <div class="week-card week-detail-card" th:each="weekGroup : ${weekGroups}"
-                     th:attr="data-week-number=${weekGroup.weekNumber}"
-                     th:with="weekLinks=${weekLinksByWeek[weekGroup.weekNumber]}, weekExplain=${weekExplanations[weekGroup.weekNumber]}">
-                    <div class="week-header-row">
-                        <div class="week-title">
-                            Week <span th:text="${weekGroup.weekNumber}"></span>
-                            <span class="test-badge"
-                                  th:if="${testStatusByWeek[weekGroup.weekNumber] == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
-                                Test Done
-                            </span>
-                        </div>
-                        <div class="week-actions">
-                            <form class="week-link-form" th:if="${weekLinks == null}"
-                                   th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/links'}" method="post">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="ghost-btn" type="submit" data-pending-text="Loading...">Link</button>
-                            </form>
-                            <form class="week-explain-form" th:if="${weekExplain == null}"
-                                   th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/explain'}" method="post">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="ghost-btn" type="submit" data-pending-text="Generating...">Explain</button>
-                            </form>
-                            <button class="ghost-btn" type="button"
-                                    th:if="${weekExplain != null}"
-                                    th:attr="data-explain-week=${weekGroup.weekNumber}"
-                                    onclick="openWeekPanel(this)">Open</button>
-                            <button class="ghost-btn" type="button"
-                                    th:attr="data-retest-week=${weekGroup.weekNumber}"
-                                    data-pending-text="Creating..."
-                                    onclick="startRetest(this)">Retest</button>
+                <section class="card">
+                    <h3>Weekly Breakdown</h3>
+                    <div class="week-list">
+                        <div class="week-card week-detail-card" th:each="weekGroup : ${weekGroups}"
+                             th:attr="data-week-number=${weekGroup.weekNumber}"
+                             th:with="weekLinks=${weekLinksByWeek[weekGroup.weekNumber]}, weekExplain=${weekExplanations[weekGroup.weekNumber]}">
+                            <div class="week-header-row">
+                                <div class="week-title">
+                                    Week <span th:text="${weekGroup.weekNumber}"></span>
+                                    <span class="test-badge"
+                                          th:if="${testStatusByWeek[weekGroup.weekNumber] == T(com.harsh.mini_project.model.TestStatus).COMPLETED}">
+                                        Test Done
+                                    </span>
+                                </div>
+                                <div class="week-actions">
+                                    <form class="week-link-form" th:if="${weekLinks == null}"
+                                           th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/links'}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <button class="ghost-btn" type="submit" data-pending-text="Loading...">Link</button>
+                                    </form>
+                                    <form class="week-explain-form" th:if="${weekExplain == null}"
+                                           th:action="@{'/roadmaps/' + ${roadmap.id} + '/weeks/' + ${weekGroup.weekNumber} + '/explain'}" method="post">
+                                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                        <button class="ghost-btn" type="submit" data-pending-text="Generating...">Explain</button>
+                                    </form>
+                                    <button class="ghost-btn" type="button"
+                                            th:if="${weekExplain != null}"
+                                            th:attr="data-explain-week=${weekGroup.weekNumber}"
+                                            onclick="openWeekPanel(this)">Open</button>
+                                    <button class="ghost-btn" type="button"
+                                            th:attr="data-retest-week=${weekGroup.weekNumber}"
+                                            data-pending-text="Creating..."
+                                            onclick="startRetest(this)">Retest</button>
+                                </div>
+                            </div>
+                            <div class="topic-item" th:each="topic : ${weekGroup.topics}" th:classappend="${topic.completed} ? 'completed'">
+                                <div class="topic-info">
+                                    <h4 th:text="${topic.topicName}"></h4>
+                                    <p class="milestone"><strong>Milestone:</strong> <span th:text="${topic.milestone}"></span></p>
+                                    <ul class="subtopic-list">
+                                        <li th:each="sub : ${topic.subtopics}">
+                                            <div class="subtopic-row">
+                                                <span th:text="${sub}"></span>
+                                            </div>
+                                            <a class="link"
+                                               th:if="${weekLinks != null and weekLinks.get(sub) != null}"
+                                               th:href="${weekLinks.get(sub)}"
+                                               th:attr="data-topic-id=${topic.id}"
+                                               target="_blank">Video</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/topics/' + ${topic.id} + '/toggle'}"
+                                      method="post"
+                                      th:attr="onsubmit=${topic.completed} ? null : 'return confirmTopicCompletion();'">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="toggle-btn"
+                                            type="submit"
+                                            data-pending-text="Saving..."
+                                            th:disabled="${topic.completed}"
+                                            th:text="${topic.completed} ? 'Completed' : 'Mark Complete'">Mark Complete</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                    <div class="topic-item" th:each="topic : ${weekGroup.topics}" th:classappend="${topic.completed} ? 'completed'">
-                        <div class="topic-info">
-                            <h4 th:text="${topic.topicName}"></h4>
-                            <p class="milestone"><strong>Milestone:</strong> <span th:text="${topic.milestone}"></span></p>
-                            <ul class="subtopic-list">
-                                <li th:each="sub : ${topic.subtopics}">
-                                    <div class="subtopic-row">
-                                        <span th:text="${sub}"></span>
-                                    </div>
-                                    <a class="link"
-                                       th:if="${weekLinks != null and weekLinks.get(sub) != null}"
-                                       th:href="${weekLinks.get(sub)}"
-                                       th:attr="data-topic-id=${topic.id}"
-                                       target="_blank">Video</a>
-                                </li>
-                            </ul>
-                        </div>
-                        <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/topics/' + ${topic.id} + '/toggle'}"
-                              method="post"
-                              th:attr="onsubmit=${topic.completed} ? null : 'return confirmTopicCompletion();'">
-                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <button class="toggle-btn"
-                                    type="submit"
-                                    data-pending-text="Saving..."
-                                    th:disabled="${topic.completed}"
-                                    th:text="${topic.completed} ? 'Completed' : 'Mark Complete'">Mark Complete</button>
-                        </form>
+                </section>
+            </div>
+
+            <aside class="card roadmap-suggestions-sidebar">
+                <div class="roadmap-suggestions-header">
+                    <div>
+                        <p class="dashboard-kicker">What To Do Next</p>
+                        <h3>Roadmap Suggestions</h3>
                     </div>
                 </div>
-            </div>
-        </section>
+                <div class="roadmap-suggestion-list" th:if="${roadmapSuggestions != null and !#lists.isEmpty(roadmapSuggestions)}">
+                    <article class="roadmap-suggestion-item" th:each="item, itemStat : ${roadmapSuggestions}">
+                        <span class="roadmap-suggestion-index" th:text="${itemStat.count}">1</span>
+                        <p class="roadmap-suggestion-text" th:text="${item.message}">Continue Week 1 and complete remaining topics.</p>
+                        <a class="ghost-btn roadmap-suggestion-action"
+                           th:href="${item.actionUrl}"
+                           th:attr="data-action-type=${item.actionType}, data-action-week=${item.actionWeek}"
+                           th:text="${item.actionLabel}">Open Roadmap</a>
+                    </article>
+                </div>
+                <div class="empty-state" th:if="${roadmapSuggestions == null or #lists.isEmpty(roadmapSuggestions)}">
+                    No suggestions yet. Keep progressing and this panel will recommend your next best actions.
+                </div>
+            </aside>
+        </div>
     </main>
 </div>
 
@@ -184,7 +210,7 @@
             return;
         }
         panelTitle.textContent = `Week ${week} Overview`;
-        panelContent.textContent = text;
+        panelContent.innerHTML = renderExplanation(text);
         trackExplanationView(week);
         overlay.classList.add('is-active');
         panel.classList.add('is-active');
@@ -195,14 +221,79 @@
         panel.classList.remove('is-active');
     }
 
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderExplanation(text) {
+        const lines = String(text || '').split(/\r?\n/).map(line => line.trim());
+        const blocks = [];
+        let listItems = [];
+
+        const flushList = () => {
+            if (listItems.length > 0) {
+                blocks.push(`<ul class="week-panel-list">${listItems.join('')}</ul>`);
+                listItems = [];
+            }
+        };
+
+        lines.forEach(line => {
+            if (!line) {
+                flushList();
+                return;
+            }
+            if (/^[-*]\s+/.test(line)) {
+                const item = escapeHtml(line.replace(/^[-*]\s+/, ''));
+                listItems.push(`<li>${item}</li>`);
+                return;
+            }
+            flushList();
+            if (/^(week summary|subtopic details?|subtopics?)\b[:\-]*/i.test(line)) {
+                blocks.push(`<h4>${escapeHtml(line)}</h4>`);
+                return;
+            }
+            blocks.push(`<p>${escapeHtml(line)}</p>`);
+        });
+
+        flushList();
+        return blocks.join('');
+    }
+
+    function scrollToWeekCard(weekNumber) {
+        if (!weekNumber) {
+            return null;
+        }
+        const card = document.querySelector(`.week-card[data-week-number="${weekNumber}"]`);
+        if (!card) {
+            return null;
+        }
+        const nav = document.querySelector('.nav');
+        const navHeight = nav ? nav.getBoundingClientRect().height : 0;
+        const topOffset = 14;
+        const cardTop = card.getBoundingClientRect().top + window.scrollY;
+        const targetTop = Math.max(0, cardTop - navHeight - topOffset);
+        window.scrollTo({top: targetTop, behavior: 'smooth'});
+        card.classList.add('week-card-focus');
+        window.setTimeout(() => card.classList.remove('week-card-focus'), 1400);
+        return card;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const openWeek = params.get('week');
     if (openWeek && weekExplanations[openWeek]) {
         panelTitle.textContent = `Week ${openWeek} Overview`;
-        panelContent.textContent = weekExplanations[openWeek];
+        panelContent.innerHTML = renderExplanation(weekExplanations[openWeek]);
         trackExplanationView(openWeek);
         overlay.classList.add('is-active');
         panel.classList.add('is-active');
+    }
+    if (openWeek) {
+        scrollToWeekCard(openWeek);
     }
 
     document.querySelectorAll('a.link[data-topic-id]').forEach(anchor => {
@@ -398,9 +489,70 @@
 
     attachModalHandlers();
 
+    function triggerSuggestionAction(actionType, week) {
+        const action = String(actionType || '').toLowerCase();
+        if (!action || !week) {
+            return;
+        }
+
+        if (action === 'explain') {
+            const openButton = document.querySelector(`button[data-explain-week="${week}"]`);
+            if (openButton) {
+                openWeekPanel(openButton);
+                return;
+            }
+            const explainForm = document.querySelector(`.week-card[data-week-number="${week}"] .week-explain-form`);
+            if (explainForm) {
+                explainForm.requestSubmit();
+            }
+            return;
+        }
+
+        if (action === 'links') {
+            const linkForm = document.querySelector(`.week-card[data-week-number="${week}"] .week-link-form`);
+            if (linkForm) {
+                linkForm.requestSubmit();
+            }
+            return;
+        }
+
+        if (action === 'retest') {
+            const retestButton = document.querySelector(`button[data-retest-week="${week}"]`);
+            if (retestButton) {
+                startRetest(retestButton);
+            }
+            return;
+        }
+
+        if (action === 'test') {
+            showTestModal(week);
+            return;
+        }
+
+        scrollToWeekCard(week);
+    }
+
+    document.querySelectorAll('.roadmap-suggestion-action[data-action-type]').forEach(anchor => {
+        anchor.addEventListener('click', event => {
+            const actionType = anchor.getAttribute('data-action-type');
+            const week = anchor.getAttribute('data-action-week');
+            if (!actionType || !week) {
+                return;
+            }
+            event.preventDefault();
+            triggerSuggestionAction(actionType, week);
+        });
+    });
+
     const weekCompleted = params.get('weekCompleted');
     if (weekCompleted) {
         showTestModal(weekCompleted);
+    }
+
+    const autoAction = params.get('action');
+    const autoWeek = params.get('week');
+    if (autoAction && autoWeek) {
+        triggerSuggestionAction(autoAction, autoWeek);
     }
 </script>
 </body>

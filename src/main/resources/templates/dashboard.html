@@ -41,82 +41,64 @@
             </article>
             <article class="dashboard-summary-card dashboard-summary-card-accent">
                 <span>Next Step</span>
-                <strong th:text="${#lists.isEmpty(activeRoadmaps) ? 'Create' : 'Continue'}">Continue</strong>
-                <p th:text="${#lists.isEmpty(activeRoadmaps) ? 'Generate a roadmap and begin from the home page.' : 'Return to your most active roadmap and keep moving.'}">
+                <strong th:text="${nextStepLabel}">Continue</strong>
+                <p th:text="${recommendation != null ? recommendation.message : (nextStepLabel == 'Create' ? 'Generate a roadmap and begin from the home page.' : 'Return to your most active roadmap and keep moving.')}">
                     Return to your most active roadmap and keep moving.
                 </p>
+                <a class="ghost-btn dashboard-hero-ghost"
+                   th:if="${recommendation != null and recommendation.roadmapId != null}"
+                   th:href="@{'/roadmaps/' + ${recommendation.roadmapId}}"
+                   th:text="${recommendation.actionLabel}">Continue Roadmap</a>
+                <a class="ghost-btn dashboard-hero-ghost"
+                   th:if="${recommendation != null and recommendation.roadmapId == null}"
+                   th:href="@{/generate-roadmap}"
+                   th:text="${recommendation.actionLabel}">Create Roadmap</a>
             </article>
         </section>
 
-        <section class="dashboard-layout">
-            <section class="card dashboard-section">
-                <div class="dashboard-section-header">
-                    <div>
-                        <p class="dashboard-kicker">Active Roadmaps</p>
-                        <h2>Continue where you left off</h2>
+        <section class="card dashboard-section">
+            <div class="dashboard-section-header">
+                <div>
+                    <p class="dashboard-kicker">Active Roadmaps</p>
+                    <h2>Continue where you left off</h2>
+                </div>
+                <a class="ghost-btn" th:href="@{/dashboard-main}">View Full Analytics</a>
+            </div>
+
+            <div class="dashboard-roadmap-grid" th:if="${!#lists.isEmpty(activeRoadmaps)}">
+                <article class="dashboard-roadmap-card" th:each="roadmap : ${activeRoadmaps}">
+                    <div class="dashboard-roadmap-head">
+                        <div>
+                            <h3 th:text="${roadmap.fieldName}">Field</h3>
+                            <p>
+                                <span th:text="${roadmap.level}">Level</span>
+                                <span>•</span>
+                                <span th:text="${roadmap.durationMonths}">0</span>
+                                <span>months</span>
+                            </p>
+                        </div>
+                        <span class="dashboard-status" th:text="${roadmap.status}">IN_PROGRESS</span>
                     </div>
-                </div>
-
-                <div class="dashboard-roadmap-grid" th:if="${!#lists.isEmpty(activeRoadmaps)}">
-                    <article class="dashboard-roadmap-card" th:each="roadmap : ${activeRoadmaps}">
-                        <div class="dashboard-roadmap-head">
-                            <div>
-                                <h3 th:text="${roadmap.fieldName}">Field</h3>
-                                <p>
-                                    <span th:text="${roadmap.level}">Level</span>
-                                    <span>•</span>
-                                    <span th:text="${roadmap.durationMonths}">0</span>
-                                    <span>months</span>
-                                </p>
-                            </div>
-                            <span class="dashboard-status" th:text="${roadmap.status}">IN_PROGRESS</span>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
-                        </div>
-                        <p class="progress-text"><span th:text="${roadmap.progressPercent}">0</span>% complete</p>
-                        <div class="dashboard-actions">
-                            <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id}}">Continue</a>
-                            <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/delete'}" method="post">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button class="danger-btn" type="submit">Delete</button>
-                            </form>
-                        </div>
-                    </article>
-                </div>
-
-                <div class="empty-state" th:if="${#lists.isEmpty(activeRoadmaps)}">
-                    No active roadmaps yet. Generate one to start learning with a clearer dashboard flow.
-                </div>
-            </section>
-
-            <section class="card dashboard-section">
-                <div class="dashboard-section-header">
-                    <div>
-                        <p class="dashboard-kicker">Recent Test Scores</p>
-                        <h2>Last 3 completed tests</h2>
+                    <div class="progress">
+                        <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
                     </div>
-                </div>
+                    <p class="progress-text"><span th:text="${roadmap.progressPercent}">0</span>% complete</p>
+                    <div class="dashboard-actions">
+                        <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id}}">Continue</a>
+                        <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/delete'}"
+                              method="post"
+                              onsubmit="return confirm('Delete this roadmap? This action cannot be undone and will remove your related progress, tests, and history for this roadmap.');">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="redirectTo" value="/dashboard">
+                            <button class="danger-btn" type="submit">Delete</button>
+                        </form>
+                    </div>
+                </article>
+            </div>
 
-                <div class="dashboard-test-list" th:if="${!#lists.isEmpty(recentTests)}">
-                    <article class="dashboard-test-card" th:each="test : ${recentTests}">
-                        <div class="dashboard-test-top">
-                            <div>
-                                <h3 th:text="${test.roadmapName}">Roadmap</h3>
-                                <p th:text="${'Week ' + test.weekNumber + ' • ' + test.topicName}">Week 1 • Topic</p>
-                            </div>
-                            <span class="score-badge" th:classappend="${test.score > 75} ? ' score-high' : (${test.score >= 40} ? ' score-medium' : ' score-low')">
-                                <span th:text="${#numbers.formatDecimal(test.score, 1, 2)}">0.00</span>%
-                            </span>
-                        </div>
-                        <a class="ghost-btn" th:href="@{'/roadmaps/' + ${test.roadmapId}}">Open Roadmap</a>
-                    </article>
-                </div>
-
-                <div class="empty-state" th:if="${#lists.isEmpty(recentTests)}">
-                    No completed tests yet. Finish a weekly test and your recent learning results will appear here.
-                </div>
-            </section>
+            <div class="empty-state" th:if="${#lists.isEmpty(activeRoadmaps)}">
+                No active roadmaps yet. Generate one to start learning with a clearer dashboard flow.
+            </div>
         </section>
     </main>
 </div>

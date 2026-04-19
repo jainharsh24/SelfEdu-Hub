@@ -70,9 +70,12 @@ public class WeekExplanationService {
         String topicPart = topicName == null ? "this week" : topicName;
         String subtopicPart = subtopics.length() == 0 ? "No subtopics listed." : subtopics.toString();
         return "Explain the weekly topic and subtopics for a self-study student. " +
-                "Start with a 2-3 line overview of the week focus and goal. " +
-                "Then provide more details about the week topic and each subtopic. " +
-                "You may use short bullet points. Keep it simple and clear. " +
+                "Use this exact format: " +
+                "1) Week Summary (exactly 3-4 lines). " +
+                "2) Subtopic Details: for EACH subtopic, write at least 3-4 short lines that explain concept, why it matters, and one practice hint. " +
+                "Keep each line concise and practical. " +
+                "Do not skip any subtopic. " +
+                "Use plain text with clear section headings. " +
                 "Week topic: " + topicPart + ". " +
                 "Subtopics: " + subtopicPart + ".";
     }

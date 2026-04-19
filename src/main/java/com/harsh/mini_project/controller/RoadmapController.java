@@ -5,6 +5,7 @@ import com.harsh.mini_project.model.Roadmap;
 import com.harsh.mini_project.model.Topic;
 import com.harsh.mini_project.service.PdfExportService;
 import com.harsh.mini_project.service.RoadmapService;
+import com.harsh.mini_project.service.RoadmapSuggestionService;
 import com.harsh.mini_project.service.TestService;
 import com.harsh.mini_project.service.UserService;
 import com.harsh.mini_project.service.WeekExplanationService;
@@ -20,6 +21,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -35,6 +37,7 @@ public class RoadmapController {
     private final PdfExportService pdfExportService;
     private final UserService userService;
     private final TestService testService;
+    private final RoadmapSuggestionService roadmapSuggestionService;
     private final YouTubeSearchService youTubeSearchService;
     private final WeekLinksService weekLinksService;
     private final WeekExplanationService weekExplanationService;
@@ -43,6 +46,7 @@ public class RoadmapController {
                              PdfExportService pdfExportService,
                              UserService userService,
                              TestService testService,
+                             RoadmapSuggestionService roadmapSuggestionService,
                              YouTubeSearchService youTubeSearchService,
                              WeekLinksService weekLinksService,
                              WeekExplanationService weekExplanationService) {
@@ -50,6 +54,7 @@ public class RoadmapController {
         this.pdfExportService = pdfExportService;
         this.userService = userService;
         this.testService = testService;
+        this.roadmapSuggestionService = roadmapSuggestionService;
         this.youTubeSearchService = youTubeSearchService;
         this.weekLinksService = weekLinksService;
         this.weekExplanationService = weekExplanationService;
@@ -84,6 +89,7 @@ public class RoadmapController {
         model.addAttribute("weekGroups", groupByWeek(roadmap.getTopics()));
         model.addAttribute("weekLinksByWeek", weekLinksService.getWeekLinksByRoadmap(roadmap));
         model.addAttribute("weekExplanations", weekExplanationService.getExplanationsByRoadmap(roadmap));
+        model.addAttribute("roadmapSuggestions", roadmapSuggestionService.getSuggestionsForRoadmap(user, roadmap));
         return "roadmap-detail";
     }
 
@@ -97,8 +103,13 @@ public class RoadmapController {
     }
 
     @PostMapping("/roadmaps/{id}/delete")
-    public String deleteRoadmap(@PathVariable Long id, Principal principal) {
+    public String deleteRoadmap(@PathVariable Long id,
+                                @RequestParam(name = "redirectTo", required = false) String redirectTo,
+                                Principal principal) {
         roadmapService.deleteRoadmap(id, userService.getByUsername(principal.getName()));
+        if ("/my-learning".equals(redirectTo)) {
+            return "redirect:/my-learning";
+        }
         return "redirect:/dashboard";
     }
 

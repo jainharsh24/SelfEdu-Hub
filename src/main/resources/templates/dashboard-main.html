@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Analytics Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="page" th:attr="data-user-id=${userId}">
@@ -45,6 +46,56 @@
             </article>
         </section>
 
+        <section class="profile-chart-grid">
+            <article class="card profile-chart-card">
+                <div class="dashboard-section-header">
+                    <div>
+                        <p class="dashboard-kicker">Score Trend</p>
+                        <h2>Performance over time</h2>
+                    </div>
+                </div>
+                <div class="profile-chart-empty hidden" id="scoreTrendEmpty">No completed tests yet.</div>
+                <canvas id="scoreTrendChart"></canvas>
+            </article>
+
+            <article class="card profile-chart-card">
+                <div class="dashboard-section-header">
+                    <div>
+                        <p class="dashboard-kicker">Weekly Activity</p>
+                        <h2>Completed topics by roadmap week</h2>
+                    </div>
+                </div>
+                <div class="profile-chart-empty hidden" id="weeklyActivityEmpty">No completed topics yet.</div>
+                <canvas id="weeklyActivityChart"></canvas>
+            </article>
+        </section>
+
+        <section class="card profile-chart-card">
+            <div class="dashboard-section-header">
+                <div>
+                    <p class="dashboard-kicker">Overall Roadmaps Progress</p>
+                    <h2>Completion trend across roadmaps</h2>
+                </div>
+            </div>
+            <div class="profile-chart-empty hidden" id="overallProgressTrendEmpty">No roadmap progress data yet.</div>
+            <canvas id="overallProgressTrendChart"></canvas>
+        </section>
+
+        <section class="card dashboard-section">
+            <div class="dashboard-section-header">
+                <div>
+                    <p class="dashboard-kicker">Recent Test Scores</p>
+                    <h2>Last 3 completed tests</h2>
+                </div>
+                <span class="dashboard-status">
+                    Best Score:
+                    <span id="bestScoreValue">0%</span>
+                </span>
+            </div>
+
+            <div class="dashboard-test-list" id="analyticsRecentTests"></div>
+        </section>
+
         <section class="analytics-state hidden" id="analyticsLoading">Loading analytics...</section>
         <section class="analytics-state hidden" id="analyticsError"></section>
         <section class="analytics-grid" id="analyticsGrid"></section>
@@ -55,9 +106,19 @@
     const analyticsRoot = document.querySelector('.page');
     const analyticsUserId = analyticsRoot?.dataset.userId;
     const analyticsGrid = document.getElementById('analyticsGrid');
+    const analyticsRecentTests = document.getElementById('analyticsRecentTests');
     const analyticsLoading = document.getElementById('analyticsLoading');
     const analyticsError = document.getElementById('analyticsError');
     const analyticsSort = document.getElementById('analyticsSort');
+    const scoreTrendCanvas = document.getElementById('scoreTrendChart');
+    const weeklyActivityCanvas = document.getElementById('weeklyActivityChart');
+    const overallProgressTrendCanvas = document.getElementById('overallProgressTrendChart');
+    const scoreTrendEmpty = document.getElementById('scoreTrendEmpty');
+    const weeklyActivityEmpty = document.getElementById('weeklyActivityEmpty');
+    const overallProgressTrendEmpty = document.getElementById('overallProgressTrendEmpty');
+    let scoreTrendChart;
+    let weeklyActivityChart;
+    let overallProgressTrendChart;
     let analyticsItems = [];
 
     function scoreClass(score) {
@@ -74,18 +135,12 @@
         return Number(value || 0).toFixed(2).replace(/\.00$/, '');
     }
 
-    function computeSummary(items) {
-        const totalRoadmaps = items.length;
-        const totalTests = items.reduce((sum, item) => sum + (item.testsAttempted || 0), 0);
-        const totalWeeksCompleted = items.reduce((sum, item) => sum + (item.completedWeeks || 0), 0);
-        const avgScoreOverall = totalRoadmaps === 0
-            ? 0
-            : items.reduce((sum, item) => sum + (item.avgScore || 0), 0) / totalRoadmaps;
-
-        document.getElementById('summaryRoadmaps').textContent = totalRoadmaps;
-        document.getElementById('summaryTests').textContent = totalTests;
-        document.getElementById('summaryAvgScore').textContent = `${formatNumber(avgScoreOverall)}%`;
-        document.getElementById('summaryWeeksCompleted').textContent = totalWeeksCompleted;
+    function computeSummary(globalAnalytics) {
+        document.getElementById('summaryRoadmaps').textContent = globalAnalytics.totalRoadmaps || 0;
+        document.getElementById('summaryTests').textContent = globalAnalytics.totalTests || 0;
+        document.getElementById('summaryAvgScore').textContent = `${formatNumber(globalAnalytics.averageScore)}%`;
+        document.getElementById('summaryWeeksCompleted').textContent = globalAnalytics.weeksCompleted || 0;
+        document.getElementById('bestScoreValue').textContent = `${formatNumber(globalAnalytics.bestScore)}%`;
     }
 
     function renderCards(items) {
@@ -131,6 +186,137 @@
         }).join('');
     }
 
+    function renderRecentTests(recentTests) {
+        if (!recentTests || !recentTests.length) {
+            analyticsRecentTests.innerHTML = '<article class="empty-state">No completed tests yet. Finish a weekly test and your recent learning results will appear here.</article>';
+            return;
+        }
+
+        analyticsRecentTests.innerHTML = recentTests.map(test => `
+            <article class="dashboard-test-card">
+                <div class="dashboard-test-top">
+                    <div>
+                        <h3>${test.roadmapName}</h3>
+                        <p>Week ${test.weekNumber} - ${test.topicName}</p>
+                    </div>
+                    <span class="score-badge ${scoreClass(test.score)}">${formatNumber(test.score)}%</span>
+                </div>
+                <a class="ghost-btn" href="/roadmaps/${test.roadmapId}">Open Roadmap</a>
+            </article>
+        `).join('');
+    }
+
+    function renderScoreTrend(points) {
+        if (scoreTrendChart) {
+            scoreTrendChart.destroy();
+            scoreTrendChart = null;
+        }
+
+        if (!points || !points.length) {
+            scoreTrendCanvas.classList.add('hidden');
+            scoreTrendEmpty.classList.remove('hidden');
+            return;
+        }
+
+        scoreTrendCanvas.classList.remove('hidden');
+        scoreTrendEmpty.classList.add('hidden');
+        scoreTrendChart = new Chart(scoreTrendCanvas, {
+            type: 'line',
+            data: {
+                labels: points.map(item => item.label),
+                datasets: [{
+                    label: 'Score',
+                    data: points.map(item => item.value),
+                    borderColor: '#2f6fa3',
+                    backgroundColor: 'rgba(47, 111, 163, 0.12)',
+                    fill: true,
+                    tension: 0.32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    function renderWeeklyActivity(points) {
+        if (weeklyActivityChart) {
+            weeklyActivityChart.destroy();
+            weeklyActivityChart = null;
+        }
+
+        if (!points || !points.length) {
+            weeklyActivityCanvas.classList.add('hidden');
+            weeklyActivityEmpty.classList.remove('hidden');
+            return;
+        }
+
+        weeklyActivityCanvas.classList.remove('hidden');
+        weeklyActivityEmpty.classList.add('hidden');
+        weeklyActivityChart = new Chart(weeklyActivityCanvas, {
+            type: 'bar',
+            data: {
+                labels: points.map(item => item.label),
+                datasets: [{
+                    label: 'Completed Topics',
+                    data: points.map(item => item.value),
+                    backgroundColor: '#2f6fa3'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    function renderOverallProgressTrend(points) {
+        if (overallProgressTrendChart) {
+            overallProgressTrendChart.destroy();
+            overallProgressTrendChart = null;
+        }
+
+        if (!points || !points.length) {
+            overallProgressTrendCanvas.classList.add('hidden');
+            overallProgressTrendEmpty.classList.remove('hidden');
+            return;
+        }
+
+        overallProgressTrendCanvas.classList.remove('hidden');
+        overallProgressTrendEmpty.classList.add('hidden');
+        overallProgressTrendChart = new Chart(overallProgressTrendCanvas, {
+            type: 'line',
+            data: {
+                labels: points.map(item => item.label),
+                datasets: [{
+                    label: 'Progress %',
+                    data: points.map(item => item.value),
+                    borderColor: '#1f4f78',
+                    backgroundColor: 'rgba(31, 79, 120, 0.12)',
+                    fill: true,
+                    tension: 0.28
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
     function sortedItems(items, sortBy) {
         const cloned = [...items];
         if (sortBy === 'score') {
@@ -158,8 +344,13 @@
             if (!response.ok) {
                 throw new Error('Failed to load analytics.');
             }
-            analyticsItems = await response.json();
-            computeSummary(analyticsItems);
+            const globalAnalytics = await response.json();
+            analyticsItems = globalAnalytics.roadmaps || [];
+            computeSummary(globalAnalytics);
+            renderScoreTrend(globalAnalytics.scoreTrend || []);
+            renderWeeklyActivity(globalAnalytics.weeklyActivity || []);
+            renderOverallProgressTrend(globalAnalytics.overallProgressTrend || []);
+            renderRecentTests(globalAnalytics.recentTests || []);
             renderCards(sortedItems(analyticsItems, analyticsSort.value));
         } catch (error) {
             analyticsError.textContent = error.message;

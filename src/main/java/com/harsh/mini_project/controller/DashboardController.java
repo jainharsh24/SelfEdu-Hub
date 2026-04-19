@@ -3,6 +3,7 @@ package com.harsh.mini_project.controller;
 import com.harsh.mini_project.service.DashboardAnalyticsService;
 import com.harsh.mini_project.service.DashboardHomeService;
 import com.harsh.mini_project.service.RoadmapService;
+import com.harsh.mini_project.service.RoadmapSuggestionService;
 import com.harsh.mini_project.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -19,15 +20,18 @@ public class DashboardController {
     private final UserService userService;
     private final DashboardAnalyticsService dashboardAnalyticsService;
     private final DashboardHomeService dashboardHomeService;
+    private final RoadmapSuggestionService roadmapSuggestionService;
 
     public DashboardController(RoadmapService roadmapService,
                                UserService userService,
                                DashboardAnalyticsService dashboardAnalyticsService,
-                               DashboardHomeService dashboardHomeService) {
+                               DashboardHomeService dashboardHomeService,
+                               RoadmapSuggestionService roadmapSuggestionService) {
         this.roadmapService = roadmapService;
         this.userService = userService;
         this.dashboardAnalyticsService = dashboardAnalyticsService;
         this.dashboardHomeService = dashboardHomeService;
+        this.roadmapSuggestionService = roadmapSuggestionService;
     }
 
     @GetMapping("/dashboard")
@@ -36,15 +40,20 @@ public class DashboardController {
         var dashboardView = dashboardHomeService.getDashboardView(user);
         model.addAttribute("username", user.getUsername());
         model.addAttribute("activeRoadmaps", dashboardView.getActiveRoadmaps());
-        model.addAttribute("recentTests", dashboardView.getRecentTests());
         model.addAttribute("totalRoadmaps", dashboardView.getTotalRoadmaps());
         model.addAttribute("avgScore", dashboardView.getAvgScore());
+        model.addAttribute("nextStepLabel", dashboardView.getNextStepLabel());
+        model.addAttribute("recommendation", dashboardView.getRecommendation());
         return "dashboard";
     }
 
     @GetMapping("/my-learning")
     public String myLearning(Model model, Principal principal) {
-        model.addAttribute("roadmaps", roadmapService.getAllRoadmaps(userService.getByUsername(principal.getName())));
+        var user = userService.getByUsername(principal.getName());
+        var roadmaps = roadmapService.getAllRoadmaps(user);
+        var suggestionsByRoadmap = roadmapSuggestionService.getSuggestionsByRoadmap(user, roadmaps);
+        model.addAttribute("roadmaps", roadmaps);
+        model.addAttribute("suggestionsByRoadmap", suggestionsByRoadmap);
         return "my-learning";
     }
 
@@ -61,6 +70,6 @@ public class DashboardController {
         if (!user.getId().equals(userId)) {
             return ResponseEntity.status(403).build();
         }
-        return ResponseEntity.ok(dashboardAnalyticsService.getAnalyticsByUser(user));
+        return ResponseEntity.ok(dashboardAnalyticsService.getGlobalAnalyticsByUser(user));
     }
 }

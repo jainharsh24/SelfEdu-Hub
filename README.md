@@ -1,52 +1,145 @@
-# Self-Study Planner (Mini Project)
+# SelfEdu – AI Powered Self Learning Planner
 
-## Introduction
-Self-Study Planner is a Spring Boot web app that helps learners generate a personalized study roadmap, track weekly progress, and validate learning with AI-assisted quizzes. It combines roadmap generation, curated learning links, and test logs into a single workflow for structured self-learning.
+SelfEdu is a web application that helps learners build a structured self-study journey.
+Users can generate a personalized roadmap, follow weekly learning plans, track progress, attempt topic-wise tests, and review analytics in one platform.
 
-## Features
-- AI-powered roadmap generation based on field, level, and duration.
-- Supports custom syllabus topics and highlights them in the plan.
-- Weekly breakdown with milestones, subtopics, and progress tracking.
-- One-click YouTube resource links for each week.
-- AI-generated weekly explanations for quick revision.
-- Automatic quiz creation, test-taking, and review flow.
-- Test logs dashboard with scores and status.
-- PDF export of the complete roadmap.
-- Secure login and user-specific roadmaps.
+The goal is to convert unstructured self-learning into a **clear roadmap with measurable progress**.
 
-## Screenshots
-### Home Page
+---
 
-<!-- Add home page screenshot here -->
+# Features
 
-### Self-Learning Page
+* Secure user **registration and login**
+* Generate personalized **learning roadmaps**
+* Support for **field, level, duration, and custom syllabus topics**
+* Weekly roadmap plan with **topics, milestones, and progress tracking**
+* **Start Learning** flow from roadmap preview to roadmap detail
+* **My Learning** page to access all saved roadmaps
+* Topic-level progress update and weekly completion tracking
+* AI assisted **weekly explanations**
+* Curated **YouTube learning links**
+* Topic-wise **MCQ test generation**
+* **Test logs** page for attempts, scores, and status
+* **Analytics dashboard** for roadmap and test performance
+* **Profile and settings** management
+* Export roadmap as **PDF**
 
-<!-- Add self-learning (roadmap detail) screenshot here -->
+---
 
-### Test Page
+## Home Page
+![Home](ss/home_page.png)
 
-<!-- Add test page screenshot here -->
+## Dashboard Page
+![Dashboard](ss/Dashboard.png)
 
-### Test Logs Page
+## Generate Roadmap
+![Generate Roadmap](ss/roadmap_generated.png)
 
-<!-- Add test logs screenshot here -->
+## My Learning Page
+![My Learning](ss/my_learnings.png)
 
-## How It Works
-- User registers and logs in.
-- User fills in field, level, duration, and optional syllabus topics.
-- The app generates a roadmap (predefined or AI-generated).
-- User saves the roadmap and starts learning week by week.
-- Progress is tracked as topics are completed.
-- For each week, user can fetch learning links and an AI explanation.
-- After completing a week, the app offers a test with MCQs.
-- Test results are saved and shown in the test logs.
-- Roadmap can be exported as a PDF.
+## Weekly Learning Plan
+![Weekly Plan](ss/weekly_plane.png)
 
-## Installation Guide
-1. Install JDK 25 (required by the project) and ensure Java is on your PATH.
-2. Configure a database (default is PostgreSQL) and update `spring.datasource.url`, `spring.datasource.username`, and `spring.datasource.password` in `src/main/resources/application.properties`.
-3. Set API keys for AI features using `GROQ_API_KEY` and `YOUTUBE_API_KEY`. You can set them as environment variables or place them in a local `.env` file.
-4. Run the app:
-   Windows: `mvnw.cmd spring-boot:run`
-   macOS/Linux: `./mvnw spring-boot:run`
-5. Open `http://localhost:8080` in your browser.
+## Test Logs
+![Test Logs](ss/test_logs.png)
+
+## Profile Page
+![Profile](ss/profile.png)
+
+---
+
+# How It Works
+1. User registers and logs in
+2. User lands on the **Home page** and views highlights
+3. User opens **Generate Roadmap**
+4. User enters:
+
+   * Field
+   * Learning level
+   * Duration
+   * Optional syllabus topics
+5. System generates a personalized roadmap
+6. User clicks **Start Learning**
+7. System opens the **roadmap detail page**
+8. User studies week by week and marks topics as completed
+9. User can fetch:
+
+   * Learning links
+   * Weekly explanations
+10. User attempts tests for completed learning sections
+11. System stores:
+
+   * Progress
+   * Test history
+   * Scores
+12. User can also navigate using:
+
+   * Dashboard
+   * My Learning
+   * Tests
+   * Analytics
+   * Profile
+
+---
+
+# Installation Guide
+
+## Step 1 — Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/selfedu.git
+```
+
+## Step 2 — Navigate to the Project
+
+```bash
+cd Mini_Project1-updating
+```
+
+## Step 3 — Configure Database and API Keys
+
+Open:
+
+```
+src/main/resources/application.properties
+```
+
+Configure your database:
+
+```
+spring.datasource.url=jdbc:postgresql://localhost:5432/roadmapdb
+spring.datasource.username=your_db_username
+spring.datasource.password=your_db_password
+```
+
+Configure your API keys:
+
+```
+groq.api-key=YOUR_GROQ_API_KEY
+youtube.api.key=YOUR_YOUTUBE_API_KEY
+```
+
+You can also place the keys in a local `.env` file if preferred.
+
+## Step 4 — Run the Application
+
+Using Maven wrapper on Windows:
+
+```bash
+mvnw.cmd spring-boot:run
+```
+
+or on macOS/Linux:
+
+```bash
+./mvnw spring-boot:run
+```
+
+## Step 5 — Open the Application
+
+Open in browser:
+
+```
+http://localhost:8080
+```

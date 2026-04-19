@@ -21,7 +21,7 @@
                     <strong th:text="${#lists.size(roadmaps)}">0</strong>
                     <span>Total roadmaps available</span>
                 </div>
-                <p class="theme-hero-panel-note">Pick any roadmap card below to return directly to its detail view.</p>
+                <p class="theme-hero-panel-note">Each roadmap now includes a next-step suggestion based on progress, tests, and study activity.</p>
             </aside>
         </section>
 
@@ -33,14 +33,23 @@
                 <h3 th:text="${roadmap.fieldName}">Field</h3>
                 <p>Level: <span th:text="${roadmap.level}">BEGINNER</span></p>
                 <p>Duration: <span th:text="${roadmap.durationMonths}">0</span> months</p>
+                <div class="roadmap-next-step"
+                     th:if="${suggestionsByRoadmap != null and suggestionsByRoadmap[roadmap.id] != null and !#lists.isEmpty(suggestionsByRoadmap[roadmap.id])}"
+                     th:with="suggestion=${suggestionsByRoadmap[roadmap.id][0]}">
+                    <p class="roadmap-next-step-label">Next Suggestion</p>
+                    <p class="roadmap-next-step-text" th:text="${suggestion.message}">Continue this roadmap based on current progress.</p>
+                </div>
                 <div class="progress">
                     <div class="progress-bar" th:style="'width:' + ${roadmap.progressPercent} + '%'"></div>
                 </div>
                 <p class="progress-text"><span th:text="${roadmap.progressPercent}">0</span>% complete</p>
                 <div class="dashboard-actions">
                     <a class="primary-btn" th:href="@{'/roadmaps/' + ${roadmap.id}}">Open Roadmap</a>
-                    <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/delete'}" method="post">
+                    <form th:action="@{'/roadmaps/' + ${roadmap.id} + '/delete'}"
+                          method="post"
+                          onsubmit="return confirm('Delete this roadmap? This action cannot be undone and will remove your related progress, tests, and history for this roadmap.');">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="redirectTo" value="/my-learning">
                         <button class="danger-btn" type="submit">Delete</button>
                     </form>
                 </div>

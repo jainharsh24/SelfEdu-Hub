@@ -6,8 +6,10 @@ import com.harsh.mini_project.dto.RoadmapWeek;
 import com.harsh.mini_project.model.AppUser;
 import com.harsh.mini_project.model.Roadmap;
 import com.harsh.mini_project.model.RoadmapStatus;
+import com.harsh.mini_project.model.Test;
 import com.harsh.mini_project.model.Topic;
 import com.harsh.mini_project.repository.RoadmapRepository;
+import com.harsh.mini_project.repository.TestRepository;
 import com.harsh.mini_project.repository.TopicRepository;
 import com.harsh.mini_project.repository.WeekExplanationRepository;
 import com.harsh.mini_project.repository.WeekLinksRepository;
@@ -24,15 +26,18 @@ import java.util.Optional;
 public class RoadmapService {
     private final RoadmapRepository roadmapRepository;
     private final TopicRepository topicRepository;
+    private final TestRepository testRepository;
     private final WeekLinksRepository weekLinksRepository;
     private final WeekExplanationRepository weekExplanationRepository;
 
     public RoadmapService(RoadmapRepository roadmapRepository,
                           TopicRepository topicRepository,
+                          TestRepository testRepository,
                           WeekLinksRepository weekLinksRepository,
                           WeekExplanationRepository weekExplanationRepository) {
         this.roadmapRepository = roadmapRepository;
         this.topicRepository = topicRepository;
+        this.testRepository = testRepository;
         this.weekLinksRepository = weekLinksRepository;
         this.weekExplanationRepository = weekExplanationRepository;
     }
@@ -122,6 +127,8 @@ public class RoadmapService {
     public void deleteRoadmap(Long roadmapId, AppUser user) {
         Roadmap roadmap = roadmapRepository.findByIdAndUser(roadmapId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Roadmap not found"));
+        List<Test> tests = testRepository.findByUserIdAndRoadmapIdOrderByCreatedAtDesc(user.getId(), roadmapId);
+        testRepository.deleteAll(tests);
         weekLinksRepository.deleteByRoadmapId(roadmapId);
         weekExplanationRepository.deleteByRoadmapId(roadmapId);
         roadmapRepository.delete(roadmap);
