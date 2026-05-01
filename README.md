@@ -27,25 +27,23 @@ The goal is to convert unstructured self-learning into a **clear roadmap with me
 ---
 
 ## Home Page
-![Home](ss/home_page.png)
-
-## Dashboard Page
-![Dashboard](ss/Dashboard.png)
+![Home](ss/homePage.png)
 
 ## Generate Roadmap
-![Generate Roadmap](ss/roadmap_generated.png)
+![Generate Roadmap](ss/RoadmapGeneration.png)
 
 ## My Learning Page
-![My Learning](ss/my_learnings.png)
+![My Learning](ss/MyLearning.png)
 
 ## Weekly Learning Plan
-![Weekly Plan](ss/weekly_plane.png)
+![Weekly Plan](ss/DetailView.png)
+
+## Analysis Dashboard
+![Analysis Dashboard](ss/AnalysisDashboard.png)
 
 ## Test Logs
-![Test Logs](ss/test_logs.png)
+![Test Logs](ss/TestLog.png)
 
-## Profile Page
-![Profile](ss/profile.png)
 
 ---
 
