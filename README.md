@@ -27,7 +27,7 @@ The goal is to convert unstructured self-learning into a **clear roadmap with me
 ---
 
 ## Home Page
-![Home](ss/homePage.png)
+![Home](ss/HomePage.png)
 
 ## Generate Roadmap
 ![Generate Roadmap](ss/RoadmapGeneration.png)
