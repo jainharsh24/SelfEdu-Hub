@@ -15,6 +15,7 @@
             <h2>Weekly Test</h2>
             <p class="muted" id="testMeta"></p>
             <p class="muted">Status: <span id="testStatus"></span></p>
+            <p class="muted hidden" id="proctorSummary"></p>
         </section>
 
         <section class="card" id="testEmpty">
@@ -30,6 +31,26 @@
             <p class="error-message" id="testError"></p>
         </section>
     </main>
+</div>
+
+<div class="test-modal-overlay is-active" id="examGuardOverlay"></div>
+<div class="test-modal is-active" id="examGuardModal">
+    <div class="test-modal-header">
+        <h3 id="examGuardTitle">Start Test</h3>
+    </div>
+    <p class="test-modal-text" id="examGuardMessage">
+        Before starting: allow camera, enter full-screen mode, and keep this test tab active until submit.
+    </p>
+    <div class="camera-preview-wrap">
+        <video id="cameraPreview" class="camera-preview hidden" autoplay muted playsinline></video>
+        <p class="muted" id="cameraStatus">Camera check pending.</p>
+    </div>
+    <p class="muted" id="violationStatus">Violations: 0 / 3</p>
+    <div class="test-modal-actions">
+        <button class="primary-btn" type="button" id="startTestBtn">Yes, Start Test</button>
+        <a class="ghost-btn" th:href="@{/dashboard-2}">Cancel</a>
+    </div>
+    <p class="error-message" id="proctorError"></p>
 </div>
 
 <script th:src="@{/js/single-action.js}"></script>
@@ -49,6 +70,103 @@
     const questionsContainer = document.getElementById('questionsContainer');
     const csrfToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
     const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+    const proctorSummary = document.getElementById('proctorSummary');
+    const examGuardOverlay = document.getElementById('examGuardOverlay');
+    const examGuardModal = document.getElementById('examGuardModal');
+    const startTestBtn = document.getElementById('startTestBtn');
+    const proctorError = document.getElementById('proctorError');
+    const violationStatus = document.getElementById('violationStatus');
+    const cameraStatus = document.getElementById('cameraStatus');
+    const cameraPreview = document.getElementById('cameraPreview');
+
+    const MAX_VIOLATIONS = 3;
+    let violationCount = 0;
+    let examStarted = false;
+    let isSubmitting = false;
+    let cameraStream = null;
+    let proctorEnabled = false;
+
+    function updateProctorSummary() {
+        if (!proctorSummary) {
+            return;
+        }
+        proctorSummary.classList.remove('hidden');
+        proctorSummary.textContent = proctorEnabled
+            ? `Proctoring active. Violations: ${violationCount}/${MAX_VIOLATIONS}.`
+            : 'Proctoring could not start. Test continues without camera/tab monitoring.';
+    }
+
+    function setViolationStatus() {
+        if (violationStatus) {
+            violationStatus.textContent = `Violations: ${violationCount} / ${MAX_VIOLATIONS}`;
+        }
+        updateProctorSummary();
+    }
+
+    function stopCameraStream() {
+        if (!cameraStream) {
+            return;
+        }
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+
+    async function requestFullscreenMode() {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        }
+    }
+
+    async function initCameraCheck() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            if (cameraStatus) {
+                cameraStatus.textContent = 'Camera API not available in this browser.';
+            }
+            return false;
+        }
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            if (cameraPreview) {
+                cameraPreview.srcObject = cameraStream;
+                cameraPreview.classList.remove('hidden');
+            }
+            if (cameraStatus) {
+                cameraStatus.textContent = 'Camera connected.';
+            }
+            return true;
+        } catch (err) {
+            if (cameraStatus) {
+                cameraStatus.textContent = 'Camera permission denied or unavailable.';
+            }
+            return false;
+        }
+    }
+
+    function hideGuardModal() {
+        if (examGuardModal) {
+            examGuardModal.classList.remove('is-active');
+        }
+        if (examGuardOverlay) {
+            examGuardOverlay.classList.remove('is-active');
+        }
+    }
+
+    function markViolation(reason) {
+        if (!examStarted || isSubmitting || !proctorEnabled) {
+            return;
+        }
+        violationCount += 1;
+        setViolationStatus();
+        if (errorLabel) {
+            errorLabel.textContent = `${reason} (${violationCount}/${MAX_VIOLATIONS}).`;
+        }
+        if (violationCount >= MAX_VIOLATIONS) {
+            if (errorLabel) {
+                errorLabel.textContent = 'Maximum violations reached. Submitting test automatically.';
+            }
+            submitTest(true);
+        }
+    }
 
     function setLoadingState(message) {
         if (testEmpty) {
@@ -217,7 +335,9 @@
         if (!testId || !submitButton) {
             return;
         }
+        isSubmitting = true;
         if (window.SingleAction && !window.SingleAction.start(submitButton, 'Submitting...')) {
+            isSubmitting = false;
             return;
         }
         submitButton.disabled = true;
@@ -261,11 +381,13 @@
                 const payload = await response.json().catch(() => ({}));
                 const message = payload?.error || 'Failed to submit test.';
                 if (response.status === 409 && testId) {
+                    stopCameraStream();
                     window.location.href = `/dashboard-3?testId=${testId}`;
                     return;
                 }
                 throw new Error(message);
             }
+            stopCameraStream();
             window.location.href = `/dashboard-3?testId=${testId}`;
         } catch (err) {
             if (errorLabel) {
@@ -274,11 +396,72 @@
             if (currentStatus !== 'COMPLETED' && window.SingleAction) {
                 window.SingleAction.finish(submitButton);
             }
+            isSubmitting = false;
         }
     }
 
+    async function startExamSession() {
+        if (startTestBtn && window.SingleAction && !window.SingleAction.start(startTestBtn, 'Starting...')) {
+            return;
+        }
+        if (proctorError) {
+            proctorError.textContent = '';
+        }
+        let fullscreenOk = false;
+        let cameraOk = false;
+        try {
+            await requestFullscreenMode();
+            fullscreenOk = !!document.fullscreenElement;
+        } catch (err) {
+            fullscreenOk = false;
+        }
+        cameraOk = await initCameraCheck();
+        if (!fullscreenOk || !cameraOk) {
+            if (proctorError) {
+                proctorError.textContent = 'Need fullscreen and camera access to start this guarded test.';
+            }
+            if (window.SingleAction) {
+                window.SingleAction.finish(startTestBtn);
+            }
+            return;
+        }
+        proctorEnabled = true;
+        examStarted = true;
+        setViolationStatus();
+        updateProctorSummary();
+        hideGuardModal();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            markViolation('You switched away from the test tab');
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        if (!document.hidden) {
+            markViolation('Window focus lost');
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (examStarted && !document.fullscreenElement) {
+            markViolation('Fullscreen mode exited');
+        }
+    });
+
+    document.addEventListener('contextmenu', event => {
+        if (!examStarted) {
+            return;
+        }
+        event.preventDefault();
+    });
+
     if (submitButton) {
         submitButton.addEventListener('click', submitTest);
+    }
+    if (startTestBtn) {
+        startTestBtn.addEventListener('click', startExamSession);
     }
 
     loadTest();

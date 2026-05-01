@@ -11,7 +11,6 @@ public class MiniProjectApplication {
         loadEnv();
         SpringApplication.run(MiniProjectApplication.class, args);
     }
-
     private static void loadEnv() {
         Dotenv dotenv = Dotenv.configure()
                 .ignoreIfMissing()
