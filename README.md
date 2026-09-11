@@ -87,13 +87,13 @@ The goal is to convert unstructured self-learning into a **clear roadmap with me
 ## Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/selfedu.git
+git clone https://github.com/jainharsh24/SelfEdu-Hub.git
 ```
 
 ## Step 2 — Navigate to the Project
 
 ```bash
-cd Mini_Project1-updating
+cd SelfEdu-Hub
 ```
 
 ## Step 3 — Configure Database and API Keys
